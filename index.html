@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23F6F1E7'/%3E%3Ccircle cx='25' cy='27' r='7' fill='%231E1C17'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200&family=Cormorant+Garamond:ital,wght@1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200&display=swap" rel="stylesheet">
 <style>
 :root{
   --paper:#F6F1E7;
@@ -56,7 +56,7 @@ html:not(.js) .r,html:not(.js) .r-soft{opacity:1;transform:none;filter:none}
 .small{font-size:13px;line-height:1.9;color:var(--dilute);letter-spacing:.04em}
 
 /* ── 1 · 숨 — 입구 ── */
-#s-breath{height:100svh;min-height:560px}
+#s-breath{height:100vh;height:100svh;min-height:560px}
 #s-breath .dot{
   position:absolute;left:38%;top:42%;width:14px;height:14px;border-radius:50%;
   background:var(--ink);transform:translate(-50%,-50%);
@@ -71,24 +71,24 @@ html:not(.js) .r,html:not(.js) .r-soft{opacity:1;transform:none;filter:none}
 }
 #s-breath .poem{position:absolute;left:38%;top:52%;transform:translateX(-6px)}
 .cue{
-  position:absolute;left:50%;bottom:6svh;width:1px;height:48px;
+  position:absolute;left:50%;bottom:6vh;bottom:6svh;width:1px;height:48px;
   background:var(--ink);opacity:0;transform-origin:top;transform:scaleY(0);
 }
 #s-seal .cue{position:absolute;top:22%;bottom:auto;opacity:0}
 
 /* ── 2 · 먹 — 번짐 ── */
-#s-ink{height:170svh}
-#s-ink .pin{position:sticky;top:0;height:100svh;overflow:hidden}
-#s-ink .poem{position:absolute;left:8vw;top:12svh;z-index:2}
+#s-ink{height:170vh;height:170svh}
+#s-ink .pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+#s-ink .poem{position:absolute;left:8vw;top:12vh;top:12svh;z-index:2}
 
 /* ── 3 · 달항아리 — 이음 ── */
-#s-jar{height:300svh}
+#s-jar{height:300vh;height:300svh}
 #s-jar .pin{
-  position:sticky;top:0;height:100svh;overflow:hidden;
+  position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
   touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
 }
 #s-jar .stanzas{
-  position:absolute;right:7vw;top:16svh;z-index:2;max-width:13em;
+  position:absolute;right:7vw;top:16vh;top:16svh;z-index:2;max-width:13em;
   font-size:clamp(17px,1.2vw + 9px,22px);line-height:2.1;
 }
 #s-jar .stanza{opacity:0;transform:translateY(10px);filter:blur(5px);
@@ -97,14 +97,14 @@ html:not(.js) .r,html:not(.js) .r-soft{opacity:1;transform:none;filter:none}
   transition:opacity 1.8s var(--easeO),transform 1.8s var(--easeO),filter 1.8s var(--easeO)}
 #s-jar .stanza+.stanza{margin-top:2em}
 #s-jar .under{
-  position:absolute;left:50%;bottom:4svh;transform:translateX(-50%);
+  position:absolute;left:50%;bottom:4vh;bottom:4svh;transform:translateX(-50%);
   text-align:center;z-index:2;width:max-content;max-width:88vw;
 }
 #s-jar .breathline{font-size:clamp(15px,1vw + 8px,18px);line-height:1.9;margin:0 0 1.1em;
-  opacity:0;transition:opacity 2.2s var(--easeO)}
-#s-jar .breathline.on{opacity:1}
-#s-jar .caption{margin:0;opacity:0;transition:opacity 2.2s var(--easeO)}
-#s-jar .caption.on{opacity:.85}
+  opacity:0;transition:opacity 3.3s var(--easeO)}
+#s-jar .breathline.on{opacity:1;transition:opacity 2.2s var(--easeO)}
+#s-jar .caption{margin:0;opacity:0;transition:opacity 3.3s var(--easeO)}
+#s-jar .caption.on{opacity:.85;transition:opacity 2.2s var(--easeO)}
 #s-jar .hint{margin:.9em 0 0;font-size:12px;letter-spacing:.14em;color:var(--dilute);
   opacity:0;transition:opacity 3s var(--easeO)}
 #s-jar .hint.on{opacity:.8;transition:opacity 2s var(--easeO)}
@@ -114,12 +114,12 @@ html:not(.js) .r,html:not(.js) .r-soft{opacity:1;transform:none;filter:none}
 #s-jar .stanzas,#s-jar .under{transition:color 2.4s linear;pointer-events:none}
 
 /* ── 4 · 결 — 소박함 ── */
-#s-grain{min-height:130svh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#s-grain{min-height:130vh;min-height:130svh;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #s-grain .light{position:absolute;top:0;bottom:0;left:0;width:70%;
   background:linear-gradient(100deg,rgba(255,251,240,0) 12%,rgba(255,251,240,.045) 50%,rgba(255,251,240,0) 88%);
   will-change:transform;pointer-events:none;transform:translateX(15vw)}
-#s-grain .vwrap{position:relative;z-index:2;padding:18svh 8vw}
-.vcol{writing-mode:vertical-rl;font-size:clamp(17px,1.2vw + 9px,22px);line-height:2.3}
+#s-grain .vwrap{position:relative;z-index:2;padding:18vh 8vw;padding:18svh 8vw}
+.vcol{writing-mode:vertical-rl;font-size:clamp(17px,1.2vw + 9px,22px);line-height:2.3;letter-spacing:.08em}
 .vcol p{margin:0;white-space:nowrap;opacity:0;transform:translateX(8px);filter:blur(4px);
   transition:opacity 1.8s var(--easeO),transform 1.8s var(--easeO),filter 1.8s var(--easeO);
   transition-delay:var(--d,0s)}
@@ -132,21 +132,24 @@ html:not(.js) .r,html:not(.js) .r-soft{opacity:1;transform:none;filter:none}
 html.lite .vcol p{filter:none}
 
 /* ── 5 · 여백 — 낙관 ── */
-#s-seal{min-height:150svh}
+#s-seal{min-height:150vh;min-height:150svh;
+  padding:92vh 0 50vh;padding:92svh 0 50svh}   /* padding, not margin: it must not collapse away */
 #s-seal .body{
-  position:absolute;left:50%;top:40%;transform:translateX(-50%);
+  position:relative;margin:0 auto;
   display:flex;flex-direction:column;align-items:center;text-align:center;width:max-content;max-width:88vw;
 }
 .seal-wrap{position:relative;display:flex;flex-direction:column;align-items:center}
 #seal{
   position:relative;width:44px;height:44px;border:0;padding:0;cursor:pointer;
-  background:radial-gradient(circle at 35% 32%,#A8443A,#9E3B32 62%,#93362E);
+  background:radial-gradient(circle at 30% 26%,rgba(255,246,235,.06),rgba(255,246,235,0) 55%),
+             radial-gradient(circle at 70% 74%,rgba(20,10,8,.08),rgba(20,10,8,0) 60%),
+             var(--cinnabar);
   color:var(--paper);font-family:'Gowun Batang',serif;font-weight:700;font-size:26px;line-height:1;
   border-radius:2px 3px 2px 3px;
-  box-shadow:inset 0 0 3px rgba(246,241,231,.4),inset 0 0 1px rgba(246,241,231,.6);
   transform:rotate(-1.5deg) translateX(-6px);
-  opacity:0;
+  opacity:0;visibility:hidden;pointer-events:none;
 }
+#seal.stamped{visibility:visible;pointer-events:auto}
 #seal.stamped{animation:stamp .5s cubic-bezier(.2,.7,.3,1) forwards}
 @keyframes stamp{
   from{opacity:0;transform:rotate(-1.5deg) translateX(-6px) scale(1.15)}
@@ -154,27 +157,32 @@ html.lite .vcol p{filter:none}
 }
 .seal-halo{position:absolute;left:50%;top:22px;width:110px;height:110px;border-radius:50%;
   transform:translate(calc(-50% - 6px),-50%);pointer-events:none;
-  background:radial-gradient(circle,rgba(158,59,50,.14) 0%,rgba(158,59,50,0) 70%);opacity:0}
+  background:radial-gradient(circle,rgba(158,59,50,.08) 0%,rgba(158,59,50,0) 70%);opacity:0}
 .ring{position:absolute;left:50%;top:22px;width:44px;height:44px;margin:-22px 0 0 -22px;
   border:1px solid var(--ink);border-radius:50%;pointer-events:none;
-  animation:ripple 1.2s var(--easeO) forwards}
-@keyframes ripple{from{transform:scale(.4);opacity:.5}to{transform:scale(7);opacity:0}}
+  animation:ripple 1.8s var(--easeO) forwards}
+@keyframes ripple{from{transform:scale(.4);opacity:.5}to{transform:scale(5);opacity:0}}
 .stamp-time{margin:2.4em 0 0;opacity:0;transition:opacity 1.6s var(--easeO) .5s}
 .stamp-time.on{opacity:1}
-#s-seal .final{margin-top:9svh;font-size:clamp(17px,1.2vw + 9px,21px);line-height:2.2}
+/* the closing poem materializes over the emptiness already held below the seal —
+   it occupies no layout space, so the seal keeps its resting place */
+#s-seal .final{
+  position:absolute;top:calc(100% + 6vh);top:calc(100% + 6svh);left:50%;transform:translateX(-50%);
+  width:max-content;max-width:88vw;
+  font-size:clamp(16px,1.1vw + 8px,20px);line-height:2.1}
 #s-seal .final p{margin:0;opacity:0;transform:translateY(10px);filter:blur(5px);
   transition:opacity 1.9s var(--easeO),transform 1.9s var(--easeO),filter 1.9s var(--easeO);
   transition-delay:var(--d,0s)}
 #s-seal .final.in p{opacity:1;transform:none;filter:none}
-#s-seal .final p+p{margin-top:1.9em}
-.released{margin:7svh 0 0!important;color:var(--dilute);font-size:clamp(15px,1vw + 8px,18px)!important;
+#s-seal .final p+p{margin-top:1.7em}
+.released{margin:4vh 0 0!important;margin:4svh 0 0!important;color:var(--dilute);font-size:clamp(14px,1vw + 7px,17px)!important;
   opacity:0!important;transform:none!important;filter:none!important;
   transition:opacity 2.2s var(--easeO) 1.5s!important}
 .released.on{opacity:1!important}
 .colophon{
   position:absolute;left:0;right:0;bottom:44px;margin:0;text-align:center;
-  font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;
-  letter-spacing:.2em;color:var(--dilute);
+  font-family:'Gowun Batang',serif;font-size:11px;
+  letter-spacing:.14em;color:var(--dilute);
   opacity:0;transition:opacity 2.6s var(--easeO)}
 .colophon.in{opacity:.85}
 html.lite #s-seal .final p,html.lite #s-jar .stanza{filter:none}
@@ -182,8 +190,14 @@ html.lite #s-seal .final p,html.lite #s-jar .stanza{filter:none}
 @media (max-width:640px){
   #s-breath .poem{left:12vw;transform:none}
   #s-breath .dot,#s-breath .halo{left:30%}
-  #s-jar .stanzas{right:8vw;top:8svh;font-size:15px;line-height:2}
+  #s-jar .stanzas{right:8vw;top:8vh;top:8svh;font-size:15px;line-height:2}
   #s-jar .stanza+.stanza{margin-top:1.6em}
+  .vcol{font-size:15px;line-height:2.1}
+  .vcol p+p{margin-block-start:1.3em}
+  .vcol p.gap{margin-block-start:2.2em}
+  #s-grain .vwrap{padding:16vh 6vw;padding:16svh 6vw}
+  #s-seal{padding-top:86vh;padding-top:86svh}
+  #s-seal .final{font-size:15px;line-height:2}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -197,7 +211,7 @@ html.lite #s-seal .final p,html.lite #s-jar .stanza{filter:none}
 <script>
 (function(){
   var h=new Date().getHours();
-  var p=h<6?'#F4F1EA':h<17?'#F6F1E7':h<21?'#F8F0E2':'#F5EFE6';
+  var p=h<6?'#F2F0EC':h<17?'#F6F1E7':h<21?'#F8EDDC':'#F4EFE4';
   var d=document.documentElement;
   d.style.setProperty('--paper',p);
   d.classList.add('js');
@@ -242,7 +256,7 @@ html.lite #s-seal .final p,html.lite #s-jar .stanza{filter:none}
       <div class="stanzas">
         <p class="stanza" data-th="0.16">달항아리는<br>두 반쪽을 이어 만듭니다.</p>
         <p class="stanza" data-th="0.5">이음새는 지워지지 않고<br>어긋남은 감춰지지 않습니다.</p>
-        <p class="stanza" data-th="0.88">그래서 달을 닮았습니다.<br>완전해서가 아니라,<br>기울어도 다시 차오르기 때문입니다.</p>
+        <p class="stanza" data-th="0.88">그래서 달을 닮았습니다.<br>완전해서가 아니라,<br>기울어도 다시<br>차오르기 때문입니다.</p>
       </div>
       <div class="under">
         <p class="breathline" id="breathline">숨은, 어긋난 틈으로 드나듭니다.</p>
@@ -258,12 +272,12 @@ html.lite #s-seal .final p,html.lite #s-jar .stanza{filter:none}
     <div class="light" id="panlight" aria-hidden="true"></div>
     <div class="vwrap">
       <div class="vcol" id="vcol">
-        <p style="--d:0s">한지는 천 년을 삽니다.</p>
-        <p style="--d:.7s">소리 없이, 자랑 없이.</p>
-        <p class="gap" style="--d:1.4s">빛을 다 통과시키고도</p>
-        <p style="--d:2.1s">제 결을 잃지 않습니다.</p>
-        <p class="gap" style="--d:2.8s">좋은 것은</p>
-        <p style="--d:3.5s">견디는 줄도 모르게 견딥니다.</p>
+        <p style="--d:0s">한지는 천 년을 삽니다</p>
+        <p style="--d:.45s">소리 없이、자랑 없이</p>
+        <p class="gap" style="--d:.9s">빛을 다 들이고도</p>
+        <p style="--d:1.35s">제 결을 잃지 않습니다</p>
+        <p class="gap" style="--d:1.8s">좋은 것은</p>
+        <p style="--d:2.25s">견디는 줄도 모르게 견딥니다</p>
       </div>
     </div>
   </section>
@@ -285,7 +299,7 @@ html.lite #s-seal .final p,html.lite #s-jar .stanza{filter:none}
         <p class="released" id="released"></p>
       </div>
     </div>
-    <p class="colophon" id="colophon">yeobaek&nbsp;—&nbsp;the beauty of what is left empty.</p>
+    <p class="colophon" id="colophon">여백&nbsp;—&nbsp;비워 둔 자리의 아름다움</p>
   </section>
 
 </main>
@@ -324,13 +338,13 @@ var illum=(1-Math.cos(2*Math.PI*phase))/2;      /* 0 new → 1 full */
 var moonLit=0.45+0.55*illum;                    /* floor: the climax survives a new moon */
 var waxing=phase<0.5;
 
-var clamp=function(v,a,b){return v<a?a:v>b?b:v};
+var clamp=function(v,a,b){return v>a?(v>b?b:v):a};  /* NaN-safe: NaN>a is false → a */
 var lerp=function(a,b,t){return a+(b-a)*t};
 var easeOut=function(t){return 1-Math.pow(1-t,3)};
 var easeIO=function(t){return t*t*(3-2*t)};
 var smooth=function(v,lo,hi){return clamp((v-lo)/(hi-lo),0,1)};
 
-var VW=innerWidth,VH=innerHeight,DPR=Math.min(devicePixelRatio||1,2);
+var VW=doc.clientWidth,VH=doc.clientHeight,DPR=Math.min(devicePixelRatio||1,2);
 
 /* ───────────────────────── grain paper ───────────────────────── */
 
@@ -387,7 +401,9 @@ function buildStatics(){
   /* 1 · 숨 : paper grain + giant 숨 */
   var b=setupCanvas('c-breath',document.getElementById('s-breath'));
   b.ctx.clearRect(0,0,b.w,b.h);
-  paintGrain(b.ctx,b.w,b.h,1,{ch:'숨',size:b.w*0.40,x:b.w*0.68,y:b.h*0.5});
+  var mob=b.w<640;
+  paintGrain(b.ctx,b.w,b.h,1,mob?{ch:'숨',size:b.w*0.52,x:b.w*0.78,y:b.h*0.44}
+                              :{ch:'숨',size:b.w*0.40,x:b.w*0.68,y:b.h*0.5});
   C.breath=b;
 
   /* 4 · 결 : grain at 3x — nearly touching the paper — + giant 白 */
@@ -419,7 +435,7 @@ function buildMountains(){
   var defs=[
     {base:0.555,amp:0.055,f1:1.7,f2:4.6,a:0.10,fade:0.34,tint:'122,117,106',n:noiseA,ph:3},
     {base:0.665,amp:0.075,f1:2.3,f2:6.1,a:0.22,fade:0.30,tint:'64,60,52',n:noiseB,ph:17},
-    {base:0.785,amp:0.09,f1:3.1,f2:8.2,a:0.46,fade:0.26,tint:'30,28,23',n:noiseW,ph:41}
+    {base:0.785,amp:0.09,f1:3.1,f2:8.2,a:0.46,fade:0.34,tint:'30,28,23',n:noiseW,ph:41}
   ];
   OFF.ridges=defs.map(function(d,k){
     var travel=VH*PARA[k];
@@ -447,6 +463,12 @@ function buildMountains(){
     }
     fillPass(1,d.a);            /* the long dissolve into mist */
     fillPass(0.32,d.a*0.7);     /* a denser breath hugging the ridge */
+    /* no layer's alpha may survive to the pin boundary */
+    sx.globalCompositeOperation='destination-out';
+    var die=sx.createLinearGradient(0,sh*0.86,0,sh);
+    die.addColorStop(0,'rgba(0,0,0,0)');die.addColorStop(1,'rgba(0,0,0,1)');
+    sx.fillStyle=die;sx.fillRect(0,sh*0.86,sw,sh*0.14);
+    sx.globalCompositeOperation='source-over';
     var big=makeCanvas(W*DPR,H*DPR),bx=big.getContext('2d');
     bx.imageSmoothingEnabled=true;bx.imageSmoothingQuality='high';
     bx.drawImage(sm,0,0,W*DPR,H*DPR);
@@ -483,7 +505,7 @@ function buildJar(){
   paintGrain(gg,j.w,j.h,1,{ch:'달',size:j.w*0.34,x:j.w*0.22,y:j.h*0.46},0.7);
 
   var mobile=j.w<640;
-  var jarH=Math.min(j.h*0.62,j.w*(mobile?0.68:0.76));
+  var jarH=Math.min(j.h*0.58,j.w*(mobile?0.68:0.76));
   var jarW=jarH*1.01;
   var cx=j.w*0.5,top=j.h*(mobile?0.60:0.545)-jarH*0.52;
   jar.cx=cx;jar.jarW=jarW;jar.jarH=jarH;
@@ -525,12 +547,13 @@ function buildJar(){
     lower.push([u2*u2*footR[0]+2*u2*t2*cx+t2*t2*footL[0],
                 u2*u2*footR[1]+2*u2*t2*(footR[1]+jarH*0.012)+t2*t2*footL[1]]);}
   for(i=loR.length-1;i>=0;i--)lower.push(toPx(loR[i],-1));
-  /* trim ~24px from its start: the pause matters more than the offset */
+  /* trim a held beat from its start: the pause matters more than the offset */
+  var gap=Math.min(24,jarH*0.035);
   var trimmed=[],acc=0;
   for(i=1;i<lower.length;i++){
     var ddx=lower[i][0]-lower[i-1][0],ddy=lower[i][1]-lower[i-1][1];
     acc+=Math.sqrt(ddx*ddx+ddy*ddy);
-    if(acc>=24)trimmed.push(lower[i]);
+    if(acc>=gap)trimmed.push(lower[i]);
   }
   for(i=0;i<trimmed.length;i++){trimmed[i][0]+=jar.dx;}
   jar.leftWaist=trimmed.length?trimmed[trimmed.length-1].slice():toPx([0.5,SEAM],-1);
@@ -553,10 +576,11 @@ function buildJar(){
 
 var secInk={},secJar={},grainLightPaused=false;
 function measure(){
-  var e=document.getElementById('s-ink');
-  secInk.top=e.offsetTop;secInk.h=e.offsetHeight;
+  /* denominators from the pins themselves, immune to URL-bar innerHeight churn */
+  var e=document.getElementById('s-ink'),p=e.querySelector('.pin');
+  secInk.top=e.offsetTop;secInk.den=Math.max(1,e.offsetHeight-p.offsetHeight);
   e=document.getElementById('s-jar');
-  secJar.top=e.offsetTop;secJar.h=e.offsetHeight;
+  secJar.top=e.offsetTop;secJar.den=Math.max(1,e.offsetHeight-document.getElementById('jar-pin').offsetHeight);
 }
 
 /* ───────────────────────── state ───────────────────────── */
@@ -567,8 +591,10 @@ var jarP=0,jarPs=0;              /* raw / smoothed progress through 달항아리
 var holdT=0,holding=false,holdArmed=false,heldOnce=false;
 var duskT=0;
 var lightPos=0.15,lightSpeed=1,lightSpeedS=1;
-var trailPts=[],lastTrail=null;
-var liteMode=false,trailSkip=0;
+var trailPts=[],trailAlive=0;
+var liteMode=false;
+var introDone=false,stampAt=0,finalShown=false,ringDone=false;
+var forceInk=false,forceJar=false;
 
 var jarPin=document.getElementById('jar-pin');
 var stanzaEls=[].slice.call(document.querySelectorAll('#s-jar .stanza'));
@@ -611,18 +637,19 @@ function drawInk(){
   }
 }
 
-function stampTrails(){
+function stampTrails(dt){
   if(RM||!vis.ink)return;
   var tc=OFF.trail.getContext('2d');
-  /* decay toward transparency of the pure ink stamp — hue never muddies */
+  /* decay toward transparency of the pure ink stamp — hue never muddies;
+     tempo normalized by dt so 120Hz and 30fps evaporate alike */
   tc.save();tc.globalCompositeOperation='destination-out';
-  tc.fillStyle='rgba(0,0,0,0.014)';
+  tc.fillStyle='rgba(0,0,0,'+(1-Math.pow(1-0.014,dt/16.67))+')';
   tc.fillRect(0,0,OFF.trail.width,OFF.trail.height);
   tc.restore();
   if(!trailPts.length)return;
-  if(liteMode&&(trailSkip++&1)){trailPts.length=0;return}
+  trailAlive=430;                       /* keep repainting until fully sunk in */
   var rc=OFF.residue.getContext('2d');
-  for(var i=0;i<trailPts.length;i++){
+  for(var i=0;i<trailPts.length;i+=liteMode?2:1){
     var p=trailPts[i],r=(12+Math.min(p[2]*0.4,12))*0.5;
     var g=tc.createRadialGradient(p[0]*0.5,p[1]*0.5,0,p[0]*0.5,p[1]*0.5,r);
     g.addColorStop(0,'rgba(30,28,23,0.05)');g.addColorStop(1,'rgba(30,28,23,0)');
@@ -655,7 +682,7 @@ function drawJar(){
     x.restore();
   }
   if(duskT>0){
-    x.fillStyle='rgba(42,39,34,'+duskT+')';
+    x.fillStyle='rgba(33,30,25,'+duskT+')';
     x.fillRect(0,0,j.w,j.h);
   }
 
@@ -675,16 +702,20 @@ function drawJar(){
     x.fillStyle=g;
     x.fillRect(0,0,j.w,j.h);
     x.restore();
-    /* breath passes through the misaligned seam: light leaks at the two waist gaps */
+    /* breath passes through the misaligned seam: light escapes as a sliver
+       along the join, never as a sphere */
     var leak=flood*0.4*moonLit*glowBoost;
-    [[jar.rightWaist,26],[jar.leftWaist,20]].forEach(function(q){
+    x.save();
+    x.beginPath();x.rect(0,jar.seamY-7,j.w,14);x.clip();
+    [[jar.rightWaist,14],[jar.leftWaist,10]].forEach(function(q){
       var pt=q[0];
       var lg=x.createRadialGradient(pt[0],pt[1],0,pt[0],pt[1],q[1]);
-      lg.addColorStop(0,'rgba(233,228,212,'+leak*0.55+')');
+      lg.addColorStop(0,'rgba(233,228,212,'+leak*0.6+')');
       lg.addColorStop(1,'rgba(233,228,212,0)');
       x.fillStyle=lg;
       x.beginPath();x.arc(pt[0],pt[1],q[1],0,7);x.fill();
     });
+    x.restore();
   }
 
   /* the seam glint — light finds the join first */
@@ -716,15 +747,17 @@ function drawJar(){
   strokeRun(x,pts,0,Math.min(drawTo,jar.upperN),lineBreath);
   if(drawTo>jar.upperN)strokeRun(x,pts,jar.upperN,drawTo,lineBreath);  /* never bridge the gap */
 
-  /* as the pinned dusk departs, its trailing edge melts back into paper */
+  /* the dusk never rules a line: it starts melting toward paper before the
+     pin releases, and dissolves fully as it departs */
   if(duskT>0.01){
-    var exitPast=scrollY-(secJar.top+secJar.h-VH);
-    if(exitPast>0){
-      var f=Math.min(1,exitPast/(VH*0.5));
-      var pg=x.createLinearGradient(0,j.h*0.68,0,j.h);
+    var exitPast=scrollY-(secJar.top+secJar.den);
+    var f=smooth(p,0.9,1)*0.45;
+    if(exitPast>0)f=Math.max(f,Math.min(1,exitPast/(j.h*0.5)));
+    if(f>0){
+      var pg=x.createLinearGradient(0,j.h*0.55,0,j.h);
       pg.addColorStop(0,'rgba('+PRGB+',0)');
       pg.addColorStop(1,'rgba('+PRGB+','+f+')');
-      x.fillStyle=pg;x.fillRect(0,j.h*0.68,j.w,j.h*0.32);
+      x.fillStyle=pg;x.fillRect(0,j.h*0.55,j.w,j.h*0.45);
     }
   }
 }
@@ -753,7 +786,10 @@ function loop(t){
 
   /* performance budget: degrade gracefully, once */
   frameAvg+=(dt-frameAvg)*0.02;
-  if(!liteMode&&frameAvg>26&&++liteCount>90){liteMode=true;doc.classList.add('lite')}
+  if(!liteMode){
+    if(frameAvg>26){if(++liteCount>90){liteMode=true;doc.classList.add('lite')}}
+    else if(frameAvg<20)liteCount=0;
+  }
 
   breathPhase=RM?0:(t%6400)/6400;
   breath=RM?0:0.5-0.5*Math.cos(breathPhase*Math.PI*2);
@@ -762,14 +798,16 @@ function loop(t){
 
   /* scroll → progress */
   var sy=scrollY;
-  inkT=clamp((sy-secInk.top)/(secInk.h-VH),0,1);
+  inkT=clamp((sy-secInk.top)/secInk.den,0,1);
   inkTs+=(inkT-inkTs)*k;
-  jarP=clamp((sy-secJar.top)/(secJar.h-VH),0,1);
+  jarP=clamp((sy-secJar.top)/secJar.den,0,1);
   jarPs+=(jarP-jarPs)*k;
 
   /* press-and-hold: 1.6s in, the exhale 1.5x slower */
+  var holdWas=holdT;
   if(holding)holdT=clamp(holdT+dt/1600,0,1);
   else holdT=clamp(holdT-dt/2400,0,1);
+  if(holdT!==holdWas)forceJar=true;
 
   /* 1 · dot + halo breathe */
   if(vis.breath&&dotEl.classList.contains('in')){
@@ -777,21 +815,37 @@ function loop(t){
     haloEl.style.opacity=0.55+0.45*breath;
   }
 
-  /* scroll cues: draw down, dissolve 1.5x slower, once per breath */
-  cueBreath(cue1,vis.breath?1:0);
+  /* scroll cues: draw down, dissolve 1.5x slower, once per breath —
+     the first cue waits until the overture has finished speaking */
+  cueBreath(cue1,(vis.breath&&introDone)?1:0);
   cueBreath(cue2,(vis.seal&&!sealStamped)?0.5:0);
 
-  /* 2 · 먹 */
+  /* 2 · 먹 — repaint only while something is actually moving */
   if(vis.ink){
     if(RM){if(!drawInk.once){drawInk();drawInk.once=true}}
-    else{stampTrails();drawInk()}
+    else{
+      stampTrails(dt);
+      if(trailAlive>0||Math.abs(inkT-inkTs)>0.0004||forceInk){
+        if(trailAlive>0)trailAlive--;
+        forceInk=false;
+        drawInk();
+      }
+    }
   }
 
-  /* 3 · 달항아리 */
+  /* 3 · 달항아리 — the vessel holds still unless drawn, breathing, or held */
   if(vis.jar){
-    drawJar();
+    if(RM){
+      if(!drawJar.once||holdT>0){drawJar.once=true;drawJar()}
+    }else if(Math.abs(jarP-jarPs)>0.0004||jarPs>=0.975||holdT>0||forceJar){
+      forceJar=false;
+      drawJar();
+    }
     jarDom();
   }
+
+  /* the ending releases itself one breath after the stamp; the tap only hastens it */
+  if(sealStamped&&!finalShown&&stampAt&&t-stampAt>6400&&vis.seal)revealFinal();
 
   /* 4 · panning light: an afternoon sun crossing the floor */
   if(vis.grain&&!RM){
@@ -869,8 +923,8 @@ function bindInteractions(){
     downXY=[e.clientX,e.clientY];downAt=performance.now();
     clearTimeout(timer);
     timer=setTimeout(function(){
-      holding=true;
-      if(hintShown){hintEl.classList.remove('on');heldOnce=true}
+      holding=true;heldOnce=true;
+      if(hintShown)hintEl.classList.remove('on');
     },350);
   });
   jarPin.addEventListener('pointermove',function(e){
@@ -889,21 +943,24 @@ function bindInteractions(){
     gs.addEventListener(ev,function(){grainLightPaused=false});
   });
 
-  /* the seal */
+  /* the seal — the tap earns one echo, ever */
   sealEl.addEventListener('click',function(){
     if(!sealStamped)return;
-    if(!RM){
+    if(!RM&&!ringDone){
+      ringDone=true;
       var ring=document.createElement('span');
       ring.className='ring';
       sealEl.parentElement.appendChild(ring);
-      setTimeout(function(){ring.remove()},1300);
+      setTimeout(function(){ring.remove()},1900);
     }
-    var fin=document.getElementById('final');
-    if(!fin.classList.contains('in')){
-      fin.classList.add('in');
-      setTimeout(function(){document.getElementById('released').classList.add('on')},1500);
-    }
+    revealFinal();
   });
+}
+
+function revealFinal(){
+  if(finalShown)return;finalShown=true;
+  document.getElementById('final').classList.add('in');
+  setTimeout(function(){document.getElementById('released').classList.add('on')},1500);
 }
 
 /* ───────────────────────── observers & choreography ───────────────────────── */
@@ -919,7 +976,7 @@ function bindObservers(){
   var rio=new IntersectionObserver(function(es){
     es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');rio.unobserve(e.target)}});
   },{threshold:0.3});
-  document.querySelectorAll('[data-io]').forEach(function(el){rio.observe(el)});
+  [].slice.call(document.querySelectorAll('[data-io]')).forEach(function(el){rio.observe(el)});
 
   /* the vertical columns */
   var vcol=document.getElementById('vcol');
@@ -928,24 +985,23 @@ function bindObservers(){
   },{threshold:0.35});
   vio.observe(vcol);
 
-  /* the seal stamps when it reaches the middle of the view */
+  /* the seal stamps when it comes into view — recording THIS minute, not the
+     minute the page was opened */
   var sio=new IntersectionObserver(function(es){
     es.forEach(function(e){
       if(e.isIntersecting&&!sealStamped){
         sealStamped=true;
+        stampTime(new Date());
+        stampAt=performance.now();
         sealEl.classList.add('stamped');
         document.getElementById('stamptime').classList.add('on');
+        setTimeout(function(){document.getElementById('colophon').classList.add('in')},3200);
         sio.disconnect();
       }
     });
   },{rootMargin:'0px 0px -30% 0px'});
   sio.observe(sealEl);
 
-  /* colophon */
-  var cio=new IntersectionObserver(function(es){
-    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');cio.disconnect()}});
-  },{threshold:0.1});
-  cio.observe(document.getElementById('colophon'));
 }
 
 /* ── 1 · the stillness gate ── */
@@ -955,6 +1011,7 @@ function stillnessGate(){
   function reveal(){
     if(revealed)return;revealed=true;
     lines.forEach(function(el,i){setTimeout(function(){el.classList.add('in')},i*900)});
+    setTimeout(function(){introDone=true},lines.length*900+900);
     ['pointermove','wheel','touchstart','scroll'].forEach(function(ev){
       removeEventListener(ev,onMove)});
   }
@@ -979,8 +1036,8 @@ function stillnessGate(){
   setTimeout(reveal,7000);                       /* the hard cap: never a dead page */
 }
 
-/* ── 5 · the visit, written in Korean words ── */
-function stampTime(){
+/* ── 5 · the visit, written in Korean words — stamped at the moment of stamping ── */
+function stampTime(t){
   var D='영일이삼사오육칠팔구';
   function sino(n){
     if(n===0)return'영';
@@ -993,17 +1050,19 @@ function stampTime(){
     return s;
   }
   var natives={1:'한',2:'두',3:'세',4:'네',5:'다섯',6:'여섯',7:'일곱',8:'여덟',9:'아홉',10:'열',11:'열한',12:'열두'};
-  var h=HOUR,h12=h%12||12;
-  var bucket=h<6?'새벽':h<12?'아침':h<17?'낮':h<21?'저녁':'밤';
-  var min=now.getMinutes();
-  var l1=sino(now.getFullYear())+'년 '+sino(now.getMonth()+1)+'월 '+sino(now.getDate())+'일';
-  var l2=bucket+' '+natives[h12]+' 시 '+(min?sino(min)+' 분':'정각')+'의 여백';
+  var h=t.getHours(),h12=h%12||12;
+  var bucket=h===0?'밤':h<6?'새벽':h<12?'아침':h<17?'낮':h<21?'저녁':'밤';
+  var min=t.getMinutes();
+  var mo=t.getMonth()+1;
+  var l1=sino(t.getFullYear())+'년 '+(mo===6?'유':mo===10?'시':sino(mo))+'월 '+sino(t.getDate())+'일';
+  var l2=(h===0&&min===0)?'자정의 여백'
+        :bucket+' '+natives[h12]+' 시 '+(min?sino(min)+' 분':'정각')+'의 여백';
   document.getElementById('stamptime').innerHTML=l1+'<br>'+l2;
   var released={
     '새벽':'곧 창이 밝아 옵니다. 그 빛은 이 종이보다 흽니다.',
     '아침':'이제 고개를 드세요. 오늘의 여백은 창밖에 있습니다.',
     '낮':'이제 고개를 드세요. 오늘의 여백은 창밖에 있습니다.',
-    '저녁':'노을도 하늘이 두는 여백입니다. 오늘의 몫이 지고 있습니다.',
+    '저녁':'노을도 하늘이 두는 여백입니다. 오늘 몫의 해가 지고 있습니다.',
     '밤':'오늘 밤 달을 보시거든, 이음새를 찾아보세요.'
   };
   document.getElementById('released').textContent=released[bucket];
@@ -1022,16 +1081,18 @@ function probeVertical(){
 
 /* ───────────────────────── boot ───────────────────────── */
 
-var lastW=innerWidth;
+var lastW=doc.clientWidth,lastH=doc.clientHeight;
 function rebuild(){
-  VW=innerWidth;VH=innerHeight;
+  lastW=doc.clientWidth;lastH=doc.clientHeight;
+  VW=lastW;VH=lastH;
+  DPR=Math.min(devicePixelRatio||1,2);
   buildStatics();buildMountains();buildJar();measure();
-  drawInk.once=false;
+  drawInk.once=false;drawJar.once=false;forceInk=true;forceJar=true;
 }
 addEventListener('resize',function(){
-  /* ignore height-only resizes (mobile URL bar); the climax must not stutter */
-  if(Math.abs(innerWidth-lastW)<2)return;
-  lastW=innerWidth;
+  if(window.visualViewport&&visualViewport.scale!==1)return;   /* pinch-zoom */
+  var dW=Math.abs(doc.clientWidth-lastW),dH=Math.abs(doc.clientHeight-lastH);
+  if(dW<2&&dH<160){VH=doc.clientHeight;measure();return}       /* URL-bar churn */
   clearTimeout(rebuild._t);
   rebuild._t=setTimeout(rebuild,180);
 });
@@ -1039,26 +1100,51 @@ addEventListener('orientationchange',function(){
   clearTimeout(rebuild._t);rebuild._t=setTimeout(rebuild,220);
 });
 
+/* the giant glyphs live only on canvas: load their face explicitly, and
+   repaint once if it arrives after boot */
+var fontsAll=((document.fonts&&document.fonts.load)
+  ?Promise.all([document.fonts.load('200 100px "Noto Serif KR"'),
+                document.fonts.load('400 20px "Gowun Batang"'),
+                document.fonts.ready])
+  :Promise.resolve()).catch(function(){});
+var fontsDone=false,repainted=false;
+fontsAll.then(function(){
+  fontsDone=true;
+  if(booted&&!repainted){repainted=true;rebuild()}
+});
+
 var booted=false;
 function boot(){
   if(booted)return;booted=true;
+  if(fontsDone)repainted=true;
   rebuild();
   probeVertical();
-  stampTime();
-  bindObservers();
+  try{bindObservers()}catch(err){noIO()}
   bindInteractions();
   requestAnimationFrame(loop);
   /* the ink dot arrives after 1.8 seconds of bare paper */
   setTimeout(function(){
     dotEl.classList.add('in');haloEl.style.opacity=1;
+    setTimeout(function(){haloEl.style.transition='none'},1300);
     setTimeout(stillnessGate,RM?0:1200);
   },RM?300:1800);
 }
 
-Promise.race([
-  document.fonts?document.fonts.ready:Promise.resolve(),
-  new Promise(function(r){setTimeout(r,3500)})
-]).then(boot);
+/* if the reveal choreography cannot run, the page must still simply exist */
+function noIO(){
+  vis={breath:1,ink:1,jar:1,grain:1,seal:1};
+  [].slice.call(document.querySelectorAll('.r,.r-soft,.stanza')).forEach(function(el){
+    el.classList.add('in');el.classList.add('on');
+  });
+  document.getElementById('vcol').classList.add('in');
+  sealStamped=true;stampTime(new Date());stampAt=performance.now();
+  sealEl.classList.add('stamped');
+  document.getElementById('stamptime').classList.add('on');
+  document.getElementById('colophon').classList.add('in');
+  introDone=true;
+}
+
+Promise.race([fontsAll,new Promise(function(r){setTimeout(r,3500)})]).then(boot);
 setTimeout(boot,4000);
 
 })();
