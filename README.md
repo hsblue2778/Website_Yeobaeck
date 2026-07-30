@@ -20,9 +20,12 @@
 
 1. **그냥 열기** — `index.html`을 브라우저로 열면 끝입니다.
 2. **로컬 서버** — `python3 -m http.server` 를 실행하고 `http://localhost:8000` 접속.
-3. **GitHub Pages** — 저장소 **Settings → Pages → Build and deployment** 에서
-   *Source: Deploy from a branch*, *Branch: `main` / `(root)`* 를 고르면
-   `https://<계정>.github.io/Website_Yeobaeck/` 에서 바로 쓸 수 있습니다.
+3. **GitHub Pages** — `main`에 푸시하면 `.github/workflows/pages.yml` 워크플로가
+   `https://<계정>.github.io/Website_Yeobaeck/` 로 자동 배포합니다.
+   단, 무료 요금제에서는 저장소가 **Public**이어야 Pages를 쓸 수 있습니다
+   (Settings → General → Danger Zone → Change visibility).
+   기록 자체는 저장소가 아니라 각자의 브라우저에만 저장되므로,
+   저장소를 공개해도 여러분의 기록이 공개되는 일은 없습니다.
 
 ## 기록은 어디에 저장되나요?
 
