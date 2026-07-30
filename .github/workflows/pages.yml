@@ -1,14 +1,15 @@
 name: GitHub Pages 배포
 
+# main의 내용을 gh-pages 가지로 밀어내면 GitHub Pages가 그 가지를 그대로 서빙한다.
+# (Pages 사이트 '개설' API는 기본 토큰 권한 밖이라, 가지 생성으로 자동 활성화되는 길을 쓴다)
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -17,23 +18,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: 저장소 받기
         uses: actions/checkout@v4
 
-      - name: Pages 설정(필요하면 활성화까지)
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: 정적 파일 꾸리기
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-
-      - name: 배포
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: gh-pages 가지로 밀어내기
+        run: git push --force origin HEAD:gh-pages
