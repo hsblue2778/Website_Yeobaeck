@@ -5,6 +5,11 @@ const HANGUL = (() => {
   const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
   // 사전 색인에서는 쌍자음을 홑자음 항목에 함께 싣는다
   const CHO_BASE = { 'ㄲ':'ㄱ', 'ㄸ':'ㄷ', 'ㅃ':'ㅂ', 'ㅆ':'ㅅ', 'ㅉ':'ㅈ' };
+  // 겹받침 호환 자모로 시작하는 제목도 첫 자음 항목에 싣는다
+  const JAMO_BASE = {
+    'ㄳ':'ㄱ', 'ㄵ':'ㄴ', 'ㄶ':'ㄴ', 'ㄺ':'ㄹ', 'ㄻ':'ㄹ', 'ㄼ':'ㄹ',
+    'ㄽ':'ㄹ', 'ㄾ':'ㄹ', 'ㄿ':'ㄹ', 'ㅀ':'ㄹ', 'ㅄ':'ㅂ',
+  };
   const INDEX_ORDER = [
     'ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ',
     'A','B','C','D','E','F','G','H','I','J','K','L','M',
@@ -69,7 +74,8 @@ const HANGUL = (() => {
       return CHO_BASE[cho] || cho;
     }
     if (code >= JAMO_START && code <= JAMO_END) {
-      return CHO_BASE[ch] || ch;
+      const base = CHO_BASE[ch] || JAMO_BASE[ch] || ch;
+      return INDEX_ORDER.includes(base) ? base : '#';
     }
     const up = ch.toUpperCase();
     if (up >= 'A' && up <= 'Z' && up.length === 1) return up;

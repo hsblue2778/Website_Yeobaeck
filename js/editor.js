@@ -75,8 +75,8 @@ const Editor = (() => {
   function htmlToText(html) {
     const doc = new DOMParser().parseFromString('<div>' + (html || '') + '</div>', 'text/html');
     doc.querySelectorAll('script,style').forEach(el => el.remove());
-    // 블록 요소 사이에 공백을 넣어 단어가 붙지 않게 한다
-    doc.querySelectorAll('p,div,h2,h3,li,blockquote,pre,br,tr,figcaption').forEach(el => {
+    // 블록 요소와 표 칸 사이에 공백을 넣어 단어가 붙지 않게 한다
+    doc.querySelectorAll('p,div,h2,h3,li,blockquote,pre,br,tr,td,th,figcaption').forEach(el => {
       el.insertAdjacentText('afterend', ' ');
     });
     return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
@@ -85,7 +85,8 @@ const Editor = (() => {
   /* ---------- 사진 처리 ---------- */
   const MAX_EDGE = 1600;      // 긴 변 기준 픽셀
   const JPEG_QUALITY = 0.85;
-  const KEEP_ORIGINAL_UNDER = 400 * 1024; // 이 크기보다 작은 png/gif는 원본 유지
+  const KEEP_ORIGINAL_UNDER = 400 * 1024; // 이보다 작은 png는 원본 유지
+  const GIF_MAX = 4 * 1024 * 1024;        // 움직이는 그림 허용 상한
 
   function readAsDataURL(file) {
     return new Promise((resolve, reject) => {
@@ -105,15 +106,32 @@ const Editor = (() => {
     });
   }
 
+  function imageError(code) {
+    const e = new Error(code);
+    e.code = code;
+    return e;
+  }
+
   async function compressImage(file) {
+    // 움직이는 그림(gif)은 변환하면 멈추므로 원본을 쓰되, 지나치게 크면 거절한다
+    if (file.type === 'image/gif') {
+      if (file.size > GIF_MAX) throw imageError('too-big');
+      return readAsDataURL(file);
+    }
+
     const original = await readAsDataURL(file);
-    // 움직이는 그림이나 작은 파일은 그대로 둔다
-    if (file.type === 'image/gif') return original;
     if (file.type === 'image/png' && file.size <= KEEP_ORIGINAL_UNDER) return original;
 
+    let img;
     try {
-      const img = await loadImage(original);
-      let { naturalWidth: w, naturalHeight: h } = img;
+      img = await loadImage(original);
+    } catch (e) {
+      // 브라우저가 그리지 못하는 형식(HEIC/TIFF 등)은 넣어 봐야 깨진 그림이 된다
+      throw imageError('unsupported');
+    }
+
+    try {
+      const { naturalWidth: w, naturalHeight: h } = img;
       if (!w || !h) return original;
 
       const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
@@ -126,8 +144,9 @@ const Editor = (() => {
       canvas.width = cw;
       canvas.height = ch;
       const ctx = canvas.getContext('2d');
-      // 투명 배경이 검게 변하지 않도록 종이색을 깔아 준다
-      ctx.fillStyle = '#f7f4ee';
+      // 투명 배경이 검게 변하지 않도록 지금 테마의 종이색을 깔아 준다
+      const paper = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() || '#f7f4ee';
+      ctx.fillStyle = paper;
       ctx.fillRect(0, 0, cw, ch);
       ctx.drawImage(img, 0, 0, cw, ch);
       const out = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
@@ -141,14 +160,20 @@ const Editor = (() => {
   /* ---------- 편집기 상태 ---------- */
   let root = null;
   let editorEl = null, titleEl = null, tagInputEl = null, chipsEl = null;
-  let countEl = null, draftStatusEl = null, fileInputEl = null;
+  let countEl = null, draftStatusEl = null, fileInputEl = null, saveBtnEl = null;
   let note = null;        // 수정 대상(새 글이면 null)
   let tags = [];
   let onSaveCb = null;
   let draftKey = 'yeobaeck.draft.new';
   let draftTimer = null;
+  let draftPending = false;      // 예약된 임시저장이 아직 실행되지 않았는가
+  let pendingOldDraft = null;    // 배너로 안내했지만 아직 결정되지 않은 이전 임시저장
   let keydownHandler = null;
+  let beforeUnloadHandler = null;
   let savedRange = null;  // 모달이 초점을 가져갈 때 선택 영역 보관
+  let mountGen = 0;       // 세대 토큰 — 화면이 바뀐 뒤 도착한 비동기 작업을 무시하기 위함
+  let saving = false;
+  let pendingImages = 0;  // 압축 중인 사진 수
 
   const $ = (sel) => root.querySelector(sel);
 
@@ -186,11 +211,17 @@ const Editor = (() => {
 
   /* ---------- 그리기 ---------- */
   function mount(container, existingNote, opts) {
+    mountGen++;
     root = container;
     note = existingNote || null;
     tags = note ? [...(note.tags || [])] : [];
     onSaveCb = opts && opts.onSave;
     draftKey = 'yeobaeck.draft.' + (note ? note.id : 'new');
+    saving = false;
+    pendingImages = 0;
+    draftPending = false;
+    pendingOldDraft = null;
+    savedRange = null;
 
     const toolsHtml = TOOLS.map(t =>
       t.sep
@@ -231,6 +262,7 @@ const Editor = (() => {
     countEl = $('.count');
     draftStatusEl = $('.draft-status');
     fileInputEl = $('.file-input');
+    saveBtnEl = $('.save-btn');
 
     if (note) editorEl.innerHTML = sanitize(note.html);
 
@@ -245,11 +277,23 @@ const Editor = (() => {
   }
 
   function unmount() {
+    mountGen++;
+    // 예약만 되고 아직 실행되지 않은 임시저장은 떠나기 전에 마저 해 둔다
+    if (draftPending && editorEl) {
+      clearTimeout(draftTimer);
+      draftSave();
+    }
+    clearTimeout(draftTimer);
+    draftPending = false;
     if (keydownHandler) {
       document.removeEventListener('keydown', keydownHandler);
       keydownHandler = null;
     }
-    clearTimeout(draftTimer);
+    if (beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      beforeUnloadHandler = null;
+    }
+    savedRange = null;
     root = null;
   }
 
@@ -352,13 +396,29 @@ const Editor = (() => {
     sel.addRange(savedRange);
   }
 
+  /** 좌표(끌어다 놓은 지점)에서 캐럿 위치를 구한다 */
+  function rangeFromPoint(x, y) {
+    if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+    if (document.caretPositionFromPoint) {
+      const p = document.caretPositionFromPoint(x, y);
+      if (!p) return null;
+      const r = document.createRange();
+      r.setStart(p.offsetNode, p.offset);
+      r.collapse(true);
+      return r;
+    }
+    return null;
+  }
+
   function askLink() {
     saveSelection();
+    const gen = mountGen;
     UI.promptModal({
       title: '링크 걸기',
       placeholder: 'https://…',
       okText: '걸기',
     }).then(url => {
+      if (gen !== mountGen) return; // 그 사이 화면이 바뀌었다
       if (!url) return;
       let href = url.trim();
       if (!/^(https?:|mailto:|#)/i.test(href)) href = 'https://' + href;
@@ -375,21 +435,33 @@ const Editor = (() => {
   }
 
   async function insertFiles(files) {
+    const gen = mountGen;
     const images = [...files].filter(f => f.type && f.type.startsWith('image/'));
     if (!images.length) return;
+    pendingImages += images.length;
     UI.toast(images.length > 1 ? `사진 ${images.length}장을 담는 중…` : '사진을 담는 중…');
     for (const file of images) {
       try {
         const dataUrl = await compressImage(file);
+        if (gen !== mountGen) return; // 화면이 바뀌었으면 조용히 중단
         editorEl.focus();
         restoreSelection();
         exec('insertHTML', `<figure><img src="${dataUrl}" alt="${esc(file.name.replace(/\.[^.]+$/, ''))}"></figure><p><br></p>`);
         saveSelection();
       } catch (e) {
-        UI.toast('사진을 넣지 못했습니다.');
+        if (gen !== mountGen) return;
+        if (e && e.code === 'unsupported') {
+          UI.toast(`'${file.name}' — 브라우저가 읽지 못하는 사진 형식입니다. JPG나 PNG로 바꿔 넣어 주세요.`);
+        } else if (e && e.code === 'too-big') {
+          UI.toast('움직이는 그림이 너무 커서 담지 못했습니다. (4MB까지)');
+        } else {
+          UI.toast('사진을 넣지 못했습니다.');
+        }
+      } finally {
+        if (gen === mountGen) pendingImages = Math.max(0, pendingImages - 1);
       }
     }
-    handleChange();
+    if (gen === mountGen) handleChange();
   }
 
   function runTool(cmd) {
@@ -413,14 +485,36 @@ const Editor = (() => {
   }
 
   /* ---------- 임시저장 ---------- */
-  function draftLoad() {
+  function loadKey(key) {
     try {
-      const raw = localStorage.getItem(draftKey);
+      const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
     } catch (e) { return null; }
   }
 
+  function removeKey(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* 무시 */ }
+  }
+
+  /** 되살릴 가치가 있는 임시저장인가(제목·본문 글자·사진·태그 중 하나라도) */
+  function draftMeaningful(d) {
+    if (!d) return false;
+    if (d.title && d.title.trim()) return true;
+    if (Array.isArray(d.tags) && d.tags.length) return true;
+    const html = d.html || '';
+    if (htmlToText(html)) return true;
+    if (/<img[\s>]/i.test(html)) return true;
+    return false;
+  }
+
   function draftSave() {
+    if (!root || !editorEl) return;
+    // 아직 결정을 못 받은 이전 임시저장은 덮어쓰기 전에 따로 옮겨 둔다
+    if (pendingOldDraft) {
+      try { localStorage.setItem(draftKey + '.bak', JSON.stringify(pendingOldDraft)); } catch (e) { /* 무시 */ }
+      pendingOldDraft = null;
+    }
+    draftPending = false;
     try {
       localStorage.setItem(draftKey, JSON.stringify({
         title: titleEl.value,
@@ -436,19 +530,35 @@ const Editor = (() => {
   }
 
   function draftClear() {
-    try { localStorage.removeItem(draftKey); } catch (e) { /* 무시 */ }
+    removeKey(draftKey);
   }
 
   function scheduleDraft() {
+    draftPending = true;
     clearTimeout(draftTimer);
     draftTimer = setTimeout(draftSave, 900);
   }
 
   function maybeOfferDraft() {
-    const draft = draftLoad();
+    // 본 키를 먼저 보고, 새 글이라면 이전에 밀려난 갈피(.bak)도 살핀다
+    let key = draftKey;
+    let draft = loadKey(key);
+    if (draft && !draftMeaningful(draft)) { removeKey(key); draft = null; }
+    if (draft && note && !(draft.at > note.updatedAt)) { removeKey(key); draft = null; }
+
+    if (!draft && !note) {
+      const bak = loadKey(draftKey + '.bak');
+      if (draftMeaningful(bak)) {
+        key = draftKey + '.bak';
+        draft = bak;
+      } else if (bak !== null) {
+        removeKey(draftKey + '.bak');
+      }
+    }
     if (!draft) return;
-    if (note && !(draft.at > note.updatedAt)) { draftClear(); return; }
-    if (!note && !draft.title && !htmlToText(draft.html)) { draftClear(); return; }
+
+    // 본 키의 임시저장은 새로 쓰는 글이 덮어쓸 수 있으니, 덮기 직전에 .bak으로 대피시킨다
+    pendingOldDraft = (key === draftKey) ? draft : null;
 
     const slot = $('.draft-slot');
     const when = new Date(draft.at).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -464,17 +574,20 @@ const Editor = (() => {
       tags = Array.isArray(draft.tags) ? draft.tags.filter(t => typeof t === 'string') : [];
       renderChips();
       updateCount();
+      pendingOldDraft = null;
+      if (key !== draftKey) removeKey(key); // 갈피에서 되살렸으면 갈피는 비운다
       slot.innerHTML = '';
     });
     slot.querySelector('.draft-discard').addEventListener('click', () => {
-      draftClear();
+      removeKey(key);
+      pendingOldDraft = null;
       slot.innerHTML = '';
     });
   }
 
   /* ---------- 저장 ---------- */
   function updateCount() {
-    const n = htmlToText(editorEl.innerHTML).length;
+    const n = (editorEl.textContent || '').replace(/\s+/g, ' ').trim().length;
     countEl.textContent = n.toLocaleString('ko-KR') + '자';
   }
 
@@ -484,6 +597,11 @@ const Editor = (() => {
   }
 
   async function save() {
+    if (saving) return;
+    if (pendingImages > 0) {
+      UI.toast('사진을 담는 중입니다. 끝나면 다시 저장해 주세요.');
+      return;
+    }
     addTagsFromInput(); // 입력창에 남아 있는 태그도 거둔다
     const title = titleEl.value.trim();
     if (!title) {
@@ -495,41 +613,66 @@ const Editor = (() => {
       return;
     }
 
-    const html = sanitize(editorEl.innerHTML);
-    const text = htmlToText(html);
-    const now = Date.now();
-    const saved = {
-      id: note ? note.id : UI.uuid(),
-      title,
-      html,
-      text,
-      tags: [...tags],
-      createdAt: note ? note.createdAt : now,
-      updatedAt: now,
-    };
+    saving = true;
+    if (saveBtnEl) saveBtnEl.disabled = true;
 
     try {
-      await DB.put(saved);
+      const html = sanitize(editorEl.innerHTML);
+      const text = htmlToText(html);
+      const now = Date.now();
+      const saved = {
+        id: note ? note.id : UI.uuid(),
+        title,
+        html,
+        text,
+        tags: [...tags],
+        createdAt: note ? note.createdAt : now,
+        updatedAt: now,
+      };
+
+      await DB.put(saved); // 트랜잭션 커밋까지 확인된 뒤에야 성공이다
+      note = saved;        // 연이어 저장해도 같은 글로 갱신되게
+      clearTimeout(draftTimer);
+      draftPending = false; // 방금 담은 글이 임시저장으로 되살아나지 않게
+      draftClear();
+      if (onSaveCb) onSaveCb(saved);
     } catch (e) {
-      UI.toast('저장하지 못했습니다. 저장 공간을 확인해 주세요.');
-      return;
+      UI.toast('저장하지 못했습니다. 저장 공간이 부족할 수 있습니다 — 서랍에서 내보내기로 갈무리해 주세요.');
+    } finally {
+      saving = false;
+      if (saveBtnEl && saveBtnEl.isConnected) saveBtnEl.disabled = false;
     }
-    draftClear();
-    if (onSaveCb) onSaveCb(saved);
   }
 
   /* ---------- 사건 연결 ---------- */
   function bindEvents() {
-    root.querySelectorAll('.tool').forEach(btn => {
+    const toolButtons = [...root.querySelectorAll('.tool')];
+    toolButtons.forEach((btn, i) => {
       // mousedown에서 초점을 잃지 않게 막는다
       btn.addEventListener('mousedown', e => e.preventDefault());
       btn.addEventListener('click', () => runTool(btn.dataset.cmd));
+      btn.tabIndex = i === 0 ? 0 : -1; // 도구막대 전체가 Tab 정거장 하나가 되도록
+    });
+
+    // 도구막대 안에서는 좌우 화살표로 옮겨 다닌다
+    $('.toolbar').addEventListener('keydown', e => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      const cur = toolButtons.indexOf(document.activeElement);
+      let next = cur < 0 ? 0 : cur;
+      if (e.key === 'ArrowLeft') next = cur <= 0 ? toolButtons.length - 1 : cur - 1;
+      if (e.key === 'ArrowRight') next = cur >= toolButtons.length - 1 ? 0 : cur + 1;
+      if (e.key === 'Home') next = 0;
+      if (e.key === 'End') next = toolButtons.length - 1;
+      toolButtons.forEach((b, i) => { b.tabIndex = i === next ? 0 : -1; });
+      toolButtons[next].focus();
     });
 
     editorEl.addEventListener('input', handleChange);
     titleEl.addEventListener('input', scheduleDraft);
 
     tagInputEl.addEventListener('keydown', e => {
+      if (e.isComposing || e.keyCode === 229) return; // 한글 조합 중의 키는 건드리지 않는다
       if (e.key === 'Enter' || e.key === ',') {
         e.preventDefault();
         addTagsFromInput();
@@ -564,7 +707,7 @@ const Editor = (() => {
       // 순수 글자는 브라우저 기본 동작에 맡긴다
     });
 
-    // 끌어다 놓기
+    // 끌어다 놓기 — 놓은 자리에 들어가도록 좌표에서 캐럿을 구한다
     editorEl.addEventListener('dragover', e => {
       if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) {
         e.preventDefault();
@@ -576,7 +719,12 @@ const Editor = (() => {
       editorEl.classList.remove('dragover');
       if (e.dataTransfer && e.dataTransfer.files.length) {
         e.preventDefault();
-        saveSelection();
+        const r = rangeFromPoint(e.clientX, e.clientY);
+        if (r && editorEl.contains(r.startContainer)) {
+          savedRange = r;
+        } else {
+          saveSelection();
+        }
         insertFiles(e.dataTransfer.files);
       }
     });
@@ -586,18 +734,31 @@ const Editor = (() => {
       fileInputEl.value = '';
     });
 
-    $('.save-btn').addEventListener('click', save);
+    saveBtnEl.addEventListener('click', save);
     $('.cancel-btn').addEventListener('click', () => {
-      history.length > 1 ? history.back() : (location.hash = '#/');
+      // 앱 안에서 돌아다닌 이력이 있을 때만 뒤로 간다(밖에서 바로 들어왔으면 홈으로)
+      let canBack = false;
+      try { canBack = typeof App !== 'undefined' && App.canGoBack(); } catch (e) { /* 무시 */ }
+      if (canBack) history.back();
+      else location.hash = '#/';
     });
 
     keydownHandler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      if ((e.ctrlKey || e.metaKey) && !e.repeat && e.key.toLowerCase() === 's') {
         e.preventDefault();
         save();
       }
     };
     document.addEventListener('keydown', keydownHandler);
+
+    // 창을 닫거나 새로 고칠 때, 기다리던 임시저장을 마저 해 둔다
+    beforeUnloadHandler = () => {
+      if (draftPending) {
+        clearTimeout(draftTimer);
+        draftSave();
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
   }
 
   return { mount, unmount, sanitize, htmlToText };

@@ -27,27 +27,70 @@ const UI = (() => {
     }, 2400);
   }
 
+  const openModals = new Set();
+  let modalSeq = 0;
+
   function openModal(innerHTML) {
     const back = document.createElement('div');
     back.className = 'modal-backdrop';
-    back.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${innerHTML}</div>`;
+    const titleId = 'modal-title-' + (++modalSeq);
+    back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}" tabindex="-1">${innerHTML}</div>`;
     document.getElementById('modal-root').appendChild(back);
+
+    const modalEl = back.querySelector('.modal');
+    const h3 = modalEl.querySelector('h3');
+    if (h3) h3.id = titleId;
+
+    const prevFocus = document.activeElement;
+
+    const focusables = () =>
+      [...modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+        .filter(el => !el.disabled && el.offsetParent !== null);
 
     let onClose = null;
     const close = () => {
+      openModals.delete(close);
       document.removeEventListener('keydown', onEsc);
       back.remove();
+      if (prevFocus && prevFocus.isConnected && typeof prevFocus.focus === 'function') {
+        prevFocus.focus();
+      }
       if (onClose) onClose();
     };
     const onEsc = (e) => { if (e.key === 'Escape') close(); };
     back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
     document.addEventListener('keydown', onEsc);
 
+    // 초점을 모달 안에 가두어 배경으로 새지 않게 한다
+    back.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const f = focusables();
+      if (!f.length) { e.preventDefault(); return; }
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === modalEl)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // 초점을 모달로 옮긴다(지정된 요소가 있으면 그리로)
+    const auto = modalEl.querySelector('[data-autofocus]');
+    setTimeout(() => { (auto || modalEl).focus(); }, 0);
+
+    openModals.add(close);
+
     return {
-      el: back.querySelector('.modal'),
+      el: modalEl,
       close,
       set onclose(fn) { onClose = fn; },
     };
+  }
+
+  function closeAllModals() {
+    [...openModals].forEach(close => close());
   }
 
   function confirmModal({ title, body, okText = '지우기', cancelText = '그만두기' }) {
@@ -56,7 +99,7 @@ const UI = (() => {
         <h3>${esc(title)}</h3>
         <p>${body}</p>
         <div class="modal-actions">
-          <button type="button" class="btn m-cancel">${esc(cancelText)}</button>
+          <button type="button" class="btn m-cancel" data-autofocus>${esc(cancelText)}</button>
           <button type="button" class="btn btn-primary m-ok">${esc(okText)}</button>
         </div>
       `);
@@ -84,13 +127,15 @@ const UI = (() => {
       m.el.querySelector('.m-ok').addEventListener('click', () => finish(input.value.trim() || null));
       m.el.querySelector('.m-cancel').addEventListener('click', () => finish(null));
       input.addEventListener('keydown', (e) => {
+        if (e.isComposing || e.keyCode === 229) return; // 한글 조합 확정 Enter는 제출이 아니다
         if (e.key === 'Enter') { e.preventDefault(); finish(input.value.trim() || null); }
       });
+      input.setAttribute('data-autofocus', '');
       setTimeout(() => input.focus(), 50);
     });
   }
 
-  return { uuid, esc, toast, openModal, confirmModal, promptModal };
+  return { uuid, esc, toast, openModal, closeAllModals, confirmModal, promptModal };
 })();
 
 /* ---------- 본체 ---------- */
@@ -187,14 +232,28 @@ const App = (() => {
     return esc(str.slice(0, idx)) + '<mark>' + esc(str.slice(idx, idx + len)) + '</mark>' + esc(str.slice(idx + len));
   }
 
+  /** 자르는 자리가 이모지(서로게이트 쌍)의 한가운데면 한 칸 물러난다 */
+  function alignBoundary(str, i) {
+    if (i > 0 && i < str.length) {
+      const code = str.charCodeAt(i);
+      if (code >= 0xDC00 && code <= 0xDFFF) return i - 1;
+    }
+    return i;
+  }
+
+  /** 글머리 미리보기(경계 보정 + 말줄임) */
+  function preview(text, limit = 110) {
+    const t = text || '';
+    if (t.length <= limit) return esc(t);
+    const cut = alignBoundary(t, limit);
+    return esc(t.slice(0, cut)) + '…';
+  }
+
   function makeSnippet(text, idx, len) {
     if (!text) return '';
-    if (idx == null || idx < 0) {
-      const s = text.slice(0, 110);
-      return esc(s) + (text.length > 110 ? '…' : '');
-    }
-    const start = Math.max(0, idx - 38);
-    const end = Math.min(text.length, idx + len + 84);
+    if (idx == null || idx < 0) return preview(text);
+    const start = alignBoundary(text, Math.max(0, idx - 38));
+    const end = alignBoundary(text, Math.min(text.length, idx + len + 84));
     return (start > 0 ? '…' : '') +
       esc(text.slice(start, idx)) + '<mark>' + esc(text.slice(idx, idx + len)) + '</mark>' +
       esc(text.slice(idx + len, end)) + (end < text.length ? '…' : '');
@@ -249,8 +308,18 @@ const App = (() => {
       }, 120);
     });
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { input.value = ''; currentSearch = ''; renderHomeBody(); }
+      if (e.isComposing || e.keyCode === 229) return; // 한글 조합 중의 Enter/Escape는 IME 몫이다
+      if (e.key === 'Escape') {
+        clearTimeout(timer);
+        input.value = '';
+        currentSearch = '';
+        renderHomeBody();
+      }
       if (e.key === 'Enter') {
+        // 미처 반영되지 않은 입력을 즉시 반영한 뒤 첫 결과를 연다
+        clearTimeout(timer);
+        currentSearch = input.value;
+        renderHomeBody();
         const first = appEl().querySelector('#home-body .entry-row a');
         if (first && currentSearch.trim()) first.click();
       }
@@ -263,6 +332,11 @@ const App = (() => {
     }
   }
 
+  function announce(msg) {
+    const el = document.getElementById('sr-status');
+    if (el) el.textContent = msg;
+  }
+
   function renderHomeBody() {
     const body = document.getElementById('home-body');
     if (!body) return;
@@ -270,6 +344,7 @@ const App = (() => {
 
     if (q) {
       const results = search(q);
+      announce(results.length ? `기록 ${results.length}건을 찾았습니다.` : '찾은 기록이 없습니다.');
       if (!results.length) {
         body.innerHTML = `
           <div class="empty">
@@ -309,7 +384,7 @@ const App = (() => {
     body.innerHTML = `
       <h2 class="section-title">요즘의 기록</h2>
       <ul class="entry-list">
-        ${recent.map(n => rowHtml(n, { snippetHtml: esc((n.text || '').slice(0, 110)) + ((n.text || '').length > 110 ? '…' : '') })).join('')}
+        ${recent.map(n => rowHtml(n, { snippetHtml: preview(n.text) })).join('')}
       </ul>
       ${topTags.length ? `
         <h2 class="section-title">자주 단 태그</h2>
@@ -338,7 +413,7 @@ const App = (() => {
     }).join('');
 
     const sections = HANGUL.INDEX_ORDER.filter(l => groups.has(l)).map(letter => `
-      <h3 class="index-letter" id="idx-${esc(letter)}">${esc(letter)} <small>${groups.get(letter).length}편</small></h3>
+      <h3 class="index-letter" id="idx-${esc(letter)}" tabindex="-1">${esc(letter)} <small>${groups.get(letter).length}편</small></h3>
       <ul class="entry-list">
         ${groups.get(letter).map(n => rowHtml(n)).join('')}
       </ul>
@@ -363,7 +438,10 @@ const App = (() => {
     appEl().querySelectorAll('.index-tabs button:not(:disabled)').forEach(btn => {
       btn.addEventListener('click', () => {
         const target = document.getElementById('idx-' + btn.dataset.letter);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.focus({ preventScroll: true }); // 다음 Tab이 그 구획에서 이어지도록
+        }
       });
     });
   }
@@ -425,8 +503,11 @@ const App = (() => {
       }
       notes = notes.filter(x => x.id !== n.id);
       updateFoot();
+      broadcast();
       UI.toast('여백으로 돌려보냈습니다.');
-      location.hash = '#/';
+      // 이미 홈이라면 해시가 안 바뀌어 onRoute가 돌지 않으니 직접 다시 그린다
+      if (parseRoute().name === 'home') onRoute();
+      else location.hash = '#/';
     });
   }
 
@@ -453,7 +534,7 @@ const App = (() => {
         </header>
         ${list.length ? `
           <ul class="entry-list" style="margin-top:1.6rem">
-            ${list.map(n => rowHtml(n, { snippetHtml: esc((n.text || '').slice(0, 110)) + ((n.text || '').length > 110 ? '…' : '') })).join('')}
+            ${list.map(n => rowHtml(n, { snippetHtml: preview(n.text) })).join('')}
           </ul>` : `
           <div class="empty">이 태그가 달린 기록이 없습니다.</div>`}
       </section>`;
@@ -471,8 +552,13 @@ const App = (() => {
         const i = notes.findIndex(x => x.id === saved.id);
         if (i >= 0) notes[i] = saved; else notes.push(saved);
         updateFoot();
+        broadcast();
         UI.toast('여백에 담아 두었습니다.');
-        location.hash = '#/note/' + saved.id;
+        // 저장을 기다리는 사이 다른 화면으로 떠났다면 끌고 오지 않는다
+        const r = parseRoute();
+        if (r.name === 'write' || r.name === 'edit') {
+          location.hash = '#/note/' + saved.id;
+        }
       },
     });
   }
@@ -550,12 +636,18 @@ const App = (() => {
       <p class="notice">기록은 이 브라우저 안(IndexedDB)에만 머뭅니다. 브라우저의 사이트 데이터를 지우면 함께 사라지니, 이따금 내보내기로 갈무리해 두세요.</p>
     `);
 
-    m.el.querySelector('.d-export').addEventListener('click', () => {
+    m.el.querySelector('.d-export').addEventListener('click', async () => {
+      // 다른 탭에서 쓴 기록도 빠뜨리지 않도록, 내보내기 직전에 저장소를 새로 읽는다
+      let all = notes;
+      try {
+        all = await DB.getAll();
+        notes = all;
+      } catch (e) { /* 실패하면 메모리 사본이라도 내보낸다 */ }
       const payload = {
         app: 'yeobaeck',
         version: 1,
         exportedAt: new Date().toISOString(),
-        notes,
+        notes: all,
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -576,17 +668,31 @@ const App = (() => {
     fileInput.addEventListener('change', async () => {
       const file = fileInput.files[0];
       if (!file) return;
+
+      // 1단계: 파일 읽기와 검증 — 여기서 실패하면 파일 문제다
+      let incoming = null;
       try {
         const data = JSON.parse(await file.text());
-        const incoming = Array.isArray(data) ? data : data.notes;
+        incoming = Array.isArray(data) ? data : data.notes;
         if (!Array.isArray(incoming)) throw new Error('bad file');
-        const { added, updated } = await importNotes(incoming);
-        m.close();
-        onRoute();
-        updateFoot();
-        UI.toast(`기록 ${added}편을 새로 담고, ${updated}편을 새로 고쳤습니다.`);
       } catch (e) {
         UI.toast('여백의 갈무리 파일이 아닌 것 같습니다.');
+        fileInput.value = '';
+        return;
+      }
+
+      // 2단계: 저장 — 여기서 실패하면 파일이 아니라 저장 공간 문제다
+      try {
+        const { added, updated } = await importNotes(incoming);
+        m.close();
+        updateFoot();
+        broadcast();
+        // 글 쓰는 중이라면 편집기를 지우지 않는다(목록 화면만 새로 그림)
+        const r = parseRoute();
+        if (r.name !== 'write' && r.name !== 'edit') onRoute();
+        UI.toast(`기록 ${added}편을 새로 담고, ${updated}편을 새로 고쳤습니다.`);
+      } catch (e) {
+        UI.toast('파일은 정상이지만 저장 공간이 모자라 담지 못했습니다.');
       }
       fileInput.value = '';
     });
@@ -698,6 +804,24 @@ const App = (() => {
     try { localStorage.setItem('yeobaeck.theme', t); } catch (e) { /* 무시 */ }
     const btn = document.getElementById('theme-toggle');
     if (btn) btn.setAttribute('aria-label', t === 'dark' ? '밝은 낮으로' : '어두운 밤으로');
+    // 모바일 브라우저 UI 색도 페이지와 함께 바뀌도록
+    const color = t === 'dark' ? '#16140f' : '#f7f4ee';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(mt => mt.setAttribute('content', color));
+  }
+
+  /* ----- 여러 탭 사이의 발맞춤 ----- */
+  let bc = null;
+  function broadcast() {
+    if (bc) { try { bc.postMessage('changed'); } catch (e) { /* 무시 */ } }
+  }
+
+  async function reloadNotes() {
+    try {
+      notes = await DB.getAll() || [];
+    } catch (e) { return; }
+    updateFoot();
+    const r = parseRoute();
+    if (r.name !== 'write' && r.name !== 'edit') onRoute(); // 글 쓰는 중엔 방해하지 않는다
   }
 
   function bindHeader() {
@@ -723,6 +847,8 @@ const App = (() => {
     });
   }
 
+  let navDepth = 0; // 앱 안에서 오간 횟수 — '돌아가기'가 사이트 밖으로 나가지 않게
+
   async function boot() {
     persistent = await DB.open();
     if (!persistent) {
@@ -730,6 +856,14 @@ const App = (() => {
       warn.className = 'storage-warn';
       warn.textContent = '이 브라우저에서는 오래 저장할 공간을 열지 못해, 창을 닫으면 기록이 사라집니다. 서랍의 내보내기로 갈무리해 주세요.';
       document.body.insertBefore(warn, document.getElementById('app'));
+
+      // 뒤늦게라도 저장 공간이 열리면 조용히 승격한다
+      DB.onPromote(async () => {
+        const w = document.querySelector('.storage-warn');
+        if (w) w.remove();
+        await reloadNotes();
+        UI.toast('저장 공간이 열렸습니다. 이제 기록이 안전하게 보관됩니다.');
+      });
     }
 
     try {
@@ -739,13 +873,29 @@ const App = (() => {
     }
     await seedIfEmpty();
 
+    // 다른 탭의 저장/삭제를 알아차린다
+    if ('BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('yeobaeck');
+        bc.onmessage = () => reloadNotes();
+      } catch (e) { bc = null; }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && DB.persistent()) reloadNotes();
+    });
+
     bindHeader();
-    window.addEventListener('hashchange', onRoute);
+    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+    window.addEventListener('hashchange', () => {
+      navDepth++;
+      UI.closeAllModals(); // 화면이 바뀌면 떠 있던 대화상자는 접는다
+      onRoute();
+    });
     onRoute();
     updateFoot();
   }
 
-  return { boot };
+  return { boot, canGoBack: () => navDepth > 0 };
 })();
 
 App.boot();
