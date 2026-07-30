@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>여백 — 나만의 학습 사전</title>
+  <meta name="description" content="배운 것을 적어 두고, 사전처럼 다시 꺼내 보는 나만의 기록 공간.">
+  <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16140f" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2.5' y='2.5' width='27' height='27' rx='5' fill='none' stroke='%23b23a30' stroke-width='2.6'/%3E%3Ctext x='16' y='22.5' font-size='16' text-anchor='middle' fill='%23b23a30' font-family='serif' font-weight='bold'%3E白%3C/text%3E%3C/svg%3E">
+  <script>
+    /* 화면이 번쩍이지 않도록 서둘러 밤낮을 정한다 */
+    (function () {
+      try {
+        var t = localStorage.getItem('yeobaeck.theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = t;
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-head">
+    <div class="site-head-inner">
+      <a class="brand" href="#/" aria-label="여백 첫 화면">
+        <span class="seal" aria-hidden="true"><span>餘</span><span>白</span></span>
+        <span class="brand-name">여백</span>
+      </a>
+      <nav class="site-nav" aria-label="차림표">
+        <a href="#/" data-nav="home">찾기</a>
+        <a href="#/index" data-nav="index">색인</a>
+        <a href="#/write" data-nav="write">쓰기</a>
+        <button type="button" class="icon-btn" id="drawer-open" title="서랍 — 갈무리와 통계" aria-label="서랍 열기" style="font-size:.92rem; border-radius:6px; transform:none">서랍</button>
+        <button type="button" class="icon-btn" id="theme-toggle" title="밤낮 바꾸기" aria-label="밤낮 바꾸기">◐</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" aria-live="polite"></main>
+
+  <footer class="site-foot">
+    여백 <span class="hanja">餘白</span> — 비워 둔 자리에 배움이 스며듭니다.<br>
+    <span id="foot-count"></span>
+  </footer>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" role="status" aria-live="polite"></div>
+
+  <script src="js/hangul.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
