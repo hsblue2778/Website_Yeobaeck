@@ -5,18 +5,19 @@ const Editor = (() => {
   /* ---------- HTML 정돈(sanitize) ---------- */
   // 허용 태그와 태그별 허용 속성. 그 밖의 태그는 내용만 남기고 벗겨 낸다.
   const ALLOWED = {
-    P: [], H2: [], H3: [], BR: [], HR: [],
+    P: ['class'], H2: ['class'], H3: ['class'], BR: [], HR: [],
     B: [], STRONG: [], I: [], EM: [], U: [], S: [], STRIKE: [], DEL: [],
     MARK: [], SUP: [], SUB: [],
-    BLOCKQUOTE: [], UL: [], OL: [], LI: [],
-    PRE: [], CODE: [],
+    BLOCKQUOTE: ['class'], UL: [], OL: [], LI: ['class'],
+    PRE: ['class'], CODE: [],
     A: ['href'], IMG: ['src', 'alt'],
     FIGURE: [], FIGCAPTION: [],
     TABLE: [], THEAD: [], TBODY: [], TFOOT: [], TR: [], TH: [], TD: [],
     DIV: [], SPAN: ['class'],
   };
-  // 글자 크기용으로만 class를 허용한다
+  // class는 서식 용도로만 허용한다: span은 글자 크기, 문단은 줄 간격
   const SIZE_CLASSES = ['t-sm', 't-lg', 't-xl'];
+  const LH_CLASSES = ['lh-tight', 'lh-loose'];
   // 내용까지 통째로 버리는 태그
   const DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'LINK', 'META', 'TITLE', 'HEAD', 'FORM', 'INPUT', 'BUTTON', 'SELECT', 'TEXTAREA', 'VIDEO', 'AUDIO', 'SVG', 'CANVAS', 'NOSCRIPT', 'TEMPLATE']);
 
@@ -64,7 +65,8 @@ const Editor = (() => {
             const v = safeSrc(attr.value);
             if (v) child.setAttribute('src', v); else { child.remove(); break; }
           } else if (name === 'class') {
-            const kept = attr.value.split(/\s+/).filter(c => SIZE_CLASSES.includes(c));
+            const allowedClasses = tag === 'SPAN' ? SIZE_CLASSES : LH_CLASSES;
+            const kept = attr.value.split(/\s+/).filter(c => allowedClasses.includes(c));
             if (kept.length) child.setAttribute('class', kept.join(' '));
             else child.removeAttribute(attr.name);
           }
@@ -211,14 +213,8 @@ const Editor = (() => {
     { cmd: 'strike', label: '<span class="t-strike">가</span>', title: '취소선' },
     { cmd: 'mark', label: '<span class="t-mark">가</span>', title: '형광펜' },
     { sep: true },
-    {
-      sel: 'size', title: '글자 크기 (고른 부분에 적용)',
-      options: [['__ph', '글자 크기'], ['t-sm', '작게'], ['__normal', '보통'], ['t-lg', '크게'], ['t-xl', '아주 크게']],
-    },
-    {
-      sel: 'lh', title: '줄 간격 (이 글 전체에 적용)',
-      options: [['tight', '줄간격 좁게'], ['normal', '줄간격 보통'], ['loose', '줄간격 넓게']],
-    },
+    { menu: 'size', label: '글자 크기', title: '글자 크기 — 고른 부분에 적용' },
+    { menu: 'lh', label: '줄간격', title: '줄 간격 — 고른 문단 또는 글 전체' },
     { sep: true },
     { cmd: 'quote', label: '❝', title: '인용' },
     { cmd: 'ul', label: SVG_UL, title: '목록' },
@@ -246,11 +242,8 @@ const Editor = (() => {
 
     const toolsHtml = TOOLS.map(t => {
       if (t.sep) return '<span class="sep"></span>';
-      if (t.sel) {
-        const opts = t.options.map(([v, label]) =>
-          `<option value="${esc(v)}"${v === '__ph' ? ' disabled hidden selected' : ''}>${esc(label)}</option>`
-        ).join('');
-        return `<span class="tool-selwrap"><select class="tool-select" data-sel="${t.sel}" title="${esc(t.title)}" aria-label="${esc(t.title)}">${opts}</select></span>`;
+      if (t.menu) {
+        return `<button type="button" class="tool tool-menu-btn" data-menu="${t.menu}" title="${esc(t.title)}" aria-label="${esc(t.title)}" aria-haspopup="menu" aria-expanded="false">${esc(t.label)}<span class="menu-caret" aria-hidden="true">▾</span></button>`;
       }
       return `<button type="button" class="tool" data-cmd="${t.cmd}" title="${esc(t.title)}" aria-label="${esc(t.title)}">${t.label}</button>`;
     }).join('');
@@ -305,6 +298,7 @@ const Editor = (() => {
 
   function unmount() {
     mountGen++;
+    closeMenu();
     // 예약만 되고 아직 실행되지 않은 임시저장은 떠나기 전에 마저 해 둔다
     if (draftPending && editorEl) {
       clearTimeout(draftTimer);
@@ -419,8 +413,71 @@ const Editor = (() => {
       editorEl.classList.remove('lh-tight', 'lh-loose');
       if (v !== 'normal') editorEl.classList.add('lh-' + v);
     }
-    const sel = root && root.querySelector('select[data-sel="lh"]');
-    if (sel) sel.value = v;
+  }
+
+  /**
+   * 편집기 맨 위층의 맨몸 글(문단 태그 없이 놓인 텍스트)을 <p>로 감싼다.
+   * contenteditable은 첫 줄을 문단으로 감싸지 않는 일이 있어,
+   * 문단 단위 서식을 주기 전에 고르게 만들어 둔다.
+   */
+  const TOP_BLOCK_TAGS = new Set(['P', 'H2', 'H3', 'UL', 'OL', 'BLOCKQUOTE', 'PRE', 'FIGURE', 'TABLE', 'HR', 'DIV']);
+  function normalizeBlocks() {
+    const kids = [...editorEl.childNodes];
+    let run = [];
+    const flush = (before) => {
+      if (!run.length) return;
+      const hasContent = run.some(n => n.nodeType === 1 || (n.textContent && n.textContent.trim()));
+      if (hasContent) {
+        const p = document.createElement('p');
+        editorEl.insertBefore(p, before);
+        run.forEach(n => p.appendChild(n));
+      }
+      run = [];
+    };
+    for (const n of kids) {
+      if (n.nodeType === 1 && TOP_BLOCK_TAGS.has(n.tagName)) flush(n);
+      else run.push(n);
+    }
+    flush(null);
+  }
+
+  /** 고른 문단(또는 커서가 있는 문단)의 줄 간격만 바꾼다 */
+  const LH_BLOCK_TAGS = 'p,h2,h3,li,blockquote,pre';
+  function applyBlockLineHeight(v) {
+    editorEl.focus();
+    restoreSelection();
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !editorEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      UI.toast('간격을 바꿀 문단에 커서를 두거나, 여러 문단을 골라 주세요.');
+      return;
+    }
+    const range = sel.getRangeAt(0);
+
+    // 정규화가 노드를 옮기면 Range 기준점이 밀려나므로,
+    // 옮기기 전에 선택이 걸친 것들을 먼저 기억해 둔다.
+    const priorBlocks = [...editorEl.querySelectorAll(LH_BLOCK_TAGS)].filter(b => range.intersectsNode(b));
+    const bareTouched = [...editorEl.childNodes].filter(n =>
+      !(n.nodeType === 1 && TOP_BLOCK_TAGS.has(n.tagName)) && range.intersectsNode(n));
+
+    normalizeBlocks();
+
+    const blockSet = new Set(priorBlocks.filter(b => editorEl.contains(b)));
+    for (const n of bareTouched) {
+      const el = n.nodeType === 1 ? n : n.parentElement;
+      const block = el && el.closest ? el.closest(LH_BLOCK_TAGS) : null;
+      if (block && editorEl.contains(block)) blockSet.add(block);
+    }
+
+    if (!blockSet.size) {
+      UI.toast('간격을 바꿀 문단을 찾지 못했습니다.');
+      return;
+    }
+    blockSet.forEach(b => {
+      b.classList.remove('lh-tight', 'lh-loose');
+      if (v === 'tight' || v === 'loose') b.classList.add('lh-' + v);
+      if (!b.classList.length) b.removeAttribute('class');
+    });
+    handleChange();
   }
 
   function unwrapEl(el) {
@@ -751,35 +808,126 @@ const Editor = (() => {
     }
   }
 
+  /* ---------- 도구막대 메뉴(팝오버) ---------- */
+  let popEl = null, popBtn = null;
+
+  function closeMenu() {
+    if (popEl) { popEl.remove(); popEl = null; }
+    if (popBtn) { popBtn.setAttribute('aria-expanded', 'false'); popBtn = null; }
+    document.removeEventListener('mousedown', onDocDown, true);
+    document.removeEventListener('keydown', onPopKey, true);
+    window.removeEventListener('scroll', positionMenu, true);
+    window.removeEventListener('resize', positionMenu);
+  }
+
+  /** 팝오버를 단추 아래, 화면 밖으로 나가지 않게 놓는다(스크롤하면 따라간다) */
+  function positionMenu() {
+    if (!popEl) return;
+    if (!popBtn || !popBtn.isConnected) { closeMenu(); return; }
+    const r = popBtn.getBoundingClientRect();
+    popEl.style.top = (r.bottom + 6) + 'px';
+    let left = r.left;
+    if (left + popEl.offsetWidth > window.innerWidth - 8) {
+      left = window.innerWidth - popEl.offsetWidth - 8;
+    }
+    popEl.style.left = Math.max(8, left) + 'px';
+  }
+
+  function onDocDown(e) {
+    if (popEl && !popEl.contains(e.target) && popBtn && !popBtn.contains(e.target)) closeMenu();
+  }
+
+  function onPopKey(e) {
+    if (!popEl) return;
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      const b = popBtn;
+      closeMenu();
+      if (b) b.focus();
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const items = [...popEl.querySelectorAll('.pop-item')];
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement);
+      const n = e.key === 'ArrowDown'
+        ? (i + 1) % items.length
+        : (i - 1 + items.length) % items.length;
+      items[n].focus();
+    }
+  }
+
+  function buildSizePop() {
+    const items = [
+      ['t-sm', '작게', '0.85em'],
+      ['', '보통', '1em'],
+      ['t-lg', '크게', '1.18em'],
+      ['t-xl', '아주 크게', '1.35em'],
+    ];
+    return items.map(([v, label, size]) =>
+      `<button type="button" class="pop-item" role="menuitem" data-size="${v}"><span style="font-size:${size}">${label}</span></button>`
+    ).join('');
+  }
+
+  function buildLhPop() {
+    const row = (attr, current) => ['tight', 'normal', 'loose'].map(v => {
+      const names = { tight: '좁게', normal: '보통', loose: '넓게' };
+      return `<button type="button" class="pop-item${current === v ? ' on' : ''}" role="menuitem" data-${attr}="${v}">${names[v]}</button>`;
+    }).join('');
+    return `
+      <div class="pop-label">고른 부분만</div>
+      <div class="pop-row">${row('lhsel', null)}</div>
+      <div class="pop-label">글 전체</div>
+      <div class="pop-row">${row('lhdoc', lineHeight)}</div>`;
+  }
+
+  function openMenu(btn, kind) {
+    if (popEl && popBtn === btn) { closeMenu(); return; } // 같은 단추를 다시 누르면 닫는다
+    closeMenu();
+    saveSelection(); // 메뉴를 여는 순간의 선택을 보관
+    popBtn = btn;
+    btn.setAttribute('aria-expanded', 'true');
+
+    popEl = document.createElement('div');
+    popEl.className = 'tool-pop';
+    popEl.setAttribute('role', 'menu');
+    popEl.innerHTML = kind === 'size' ? buildSizePop() : buildLhPop();
+    document.body.appendChild(popEl);
+    positionMenu();
+
+    // 항목을 눌러도 편집기의 선택이 풀리지 않게
+    popEl.querySelectorAll('button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
+    popEl.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.dataset.size !== undefined) applySize(b.dataset.size);
+      else if (b.dataset.lhsel) applyBlockLineHeight(b.dataset.lhsel);
+      else if (b.dataset.lhdoc) { setLineHeight(b.dataset.lhdoc); scheduleDraft(); }
+      closeMenu();
+    });
+
+    document.addEventListener('mousedown', onDocDown, true);
+    document.addEventListener('keydown', onPopKey, true);
+    window.addEventListener('scroll', positionMenu, true);
+    window.addEventListener('resize', positionMenu);
+  }
+
   /* ---------- 사건 연결 ---------- */
   function bindEvents() {
     const toolButtons = [...root.querySelectorAll('.tool')];
     toolButtons.forEach((btn, i) => {
       // mousedown에서 초점을 잃지 않게 막는다
       btn.addEventListener('mousedown', e => e.preventDefault());
-      btn.addEventListener('click', () => runTool(btn.dataset.cmd));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.menu) openMenu(btn, btn.dataset.menu);
+        else runTool(btn.dataset.cmd);
+      });
       btn.tabIndex = i === 0 ? 0 : -1; // 도구막대 전체가 Tab 정거장 하나가 되도록
     });
 
-    // 글자 크기 — 선택 상자가 초점을 가져가기 전에 고른 부분을 보관해 둔다
-    const sizeSel = root.querySelector('select[data-sel="size"]');
-    sizeSel.addEventListener('mousedown', saveSelection);
-    sizeSel.addEventListener('change', () => {
-      const v = sizeSel.value;
-      sizeSel.value = '__ph'; // 항상 '글자 크기' 표시로 되돌린다(명령 메뉴이므로)
-      applySize(v === '__normal' ? '' : v);
-    });
-
-    // 줄 간격 — 이 글 전체에 적용된다
-    const lhSel = root.querySelector('select[data-sel="lh"]');
-    lhSel.addEventListener('change', () => {
-      setLineHeight(lhSel.value);
-      scheduleDraft();
-    });
-
-    // 도구막대 안에서는 좌우 화살표로 옮겨 다닌다(선택 상자 안은 제외)
+    // 도구막대 안에서는 좌우 화살표로 옮겨 다닌다
     $('.toolbar').addEventListener('keydown', e => {
-      if (e.target && e.target.tagName === 'SELECT') return;
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
       const cur = toolButtons.indexOf(document.activeElement);

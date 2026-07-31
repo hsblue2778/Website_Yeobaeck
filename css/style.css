@@ -499,9 +499,11 @@ a.chip:hover, button.chip:hover { opacity: 0.7; }
 /* ---------- 본문 서체(prose) — 열람과 편집 공용 ---------- */
 .prose { line-height: 1.95; }
 
-/* 줄 간격 — 글마다 고를 수 있다 */
+/* 줄 간격 — 글 전체(컨테이너) 또는 문단 하나하나에 붙는다 */
 .prose.lh-tight { line-height: 1.6; }
 .prose.lh-loose { line-height: 2.35; }
+.prose .lh-tight { line-height: 1.6; }
+.prose .lh-loose { line-height: 2.35; }
 
 /* 글자 크기 — 고른 부분에만 적용 */
 .prose .t-sm { font-size: 0.85em; }
@@ -812,48 +814,86 @@ a.chip:hover, button.chip:hover { opacity: 0.7; }
 
 .tool svg { width: 1.05rem; height: 1.05rem; }
 
-/* 도구막대의 선택 상자(글자 크기 · 줄 간격) */
-.tool-selwrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex: none;
-}
-
-.tool-selwrap::after {
-  content: '▾';
-  position: absolute;
-  right: 0.35rem;
-  font-size: 0.55rem;
-  color: var(--ink-faint);
-  pointer-events: none;
-}
-
-.tool-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: none;
-  height: 2rem;
-  padding: 0 1.05rem 0 0.45rem;
-  border-radius: 6px;
+/* 도구막대의 메뉴 단추(글자 크기 · 줄간격) */
+.tool-menu-btn {
   font-family: 'Noto Serif KR', serif;
   font-size: 0.8rem;
+  padding: 0 0.55rem;
+}
+
+.tool-menu-btn .menu-caret {
+  font-size: 0.55rem;
+  color: var(--ink-faint);
+  margin-left: 0.3rem;
+  transition: transform 0.2s ease;
+}
+
+.tool-menu-btn[aria-expanded="true"] { background: var(--line-soft); color: var(--ink); }
+.tool-menu-btn[aria-expanded="true"] .menu-caret { transform: rotate(180deg); }
+
+/* 메뉴가 펼치는 판 — 여백의 종이 위에 놓인 작은 쪽지처럼 */
+.tool-pop {
+  position: fixed;
+  z-index: 90;
+  min-width: 8.2rem;
+  background: var(--paper-elev);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 0.35rem;
+  animation: pop-in 0.16s ease both;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.pop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.42rem 0.7rem;
+  border-radius: 7px;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 0.88rem;
+  line-height: 1.4;
   color: var(--ink-soft);
-  cursor: pointer;
+  text-align: left;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.tool-select:hover { background: var(--line-soft); color: var(--ink); }
-
-/* 선택 상자가 펼치는 목록 — 브라우저 기본색을 쓰지 않고 밤낮 테마를 따라간다 */
-.tool-select option {
-  background-color: var(--paper-elev);
+.pop-item:hover, .pop-item:focus-visible {
+  background: var(--line-soft);
   color: var(--ink);
-  font-size: 0.95rem;
+  outline: none;
 }
 
-.tool-select option:disabled { color: var(--ink-faint); }
+.pop-item.on { color: var(--seal); }
+.pop-item.on::after { content: '✓'; font-size: 0.75em; color: var(--seal); margin-left: 0.6em; }
+
+.pop-label {
+  padding: 0.5rem 0.7rem 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
+}
+
+.pop-row {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.pop-row .pop-item {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+  padding: 0.38rem 0.3rem;
+  font-size: 0.82rem;
+}
+
+.pop-row .pop-item.on::after { content: none; }
 
 .tool .t-bold { font-weight: 800; }
 .tool .t-italic { font-style: italic; }
