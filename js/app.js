@@ -465,7 +465,7 @@ const App = (() => {
           ${!sameDay(n.createdAt, n.updatedAt) ? `<span>고쳐 씀 · ${fmtDate(n.updatedAt)}</span>` : ''}
           <span>${(n.text || '').length.toLocaleString('ko-KR')}자</span>
         </div>
-        <div class="entry-body prose">${n.html}</div>
+        <div class="entry-body prose${n.lineHeight === 'tight' || n.lineHeight === 'loose' ? ' lh-' + n.lineHeight : ''}">${n.html}</div>
         <footer class="entry-foot">
           <nav class="entry-nav" aria-label="이웃 표제어">
             ${prev ? `<a href="#/note/${prev.id}" title="${esc(prev.title)}"><span class="dir">◂ </span>${esc(prev.title)}</a>` : '<span></span>'}
@@ -714,6 +714,7 @@ const App = (() => {
         html,
         text: Editor.htmlToText(html),
         tags: Array.isArray(raw.tags) ? raw.tags.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim()).slice(0, 12) : [],
+        lineHeight: ['tight', 'normal', 'loose'].includes(raw.lineHeight) ? raw.lineHeight : 'normal',
         createdAt: Number(raw.createdAt) || Date.now(),
         updatedAt: Number(raw.updatedAt) || Number(raw.createdAt) || Date.now(),
       };
@@ -753,7 +754,7 @@ const App = (() => {
       make('여백 사용법', ['안내'], `
         <p>어서 오세요. <b>여백</b>은 배운 것을 적어 두고, 사전처럼 다시 꺼내 보는 당신만의 기록 공간입니다.</p>
         <h2>쓰기</h2>
-        <p>차림표의 「쓰기」에서 새 기록을 시작합니다. 도구막대로 <b>굵게</b>, <i>기울임</i>, <mark>형광펜</mark>, 인용, 목록, 코드 같은 서식을 쓸 수 있습니다.</p>
+        <p>차림표의 「쓰기」에서 새 기록을 시작합니다. 도구막대로 <b>굵게</b>, <i>기울임</i>, <mark>형광펜</mark>, 인용, 목록, 코드 같은 서식을 쓸 수 있습니다. 고른 부분의 <span class="t-lg">글자 크기</span>와 글 전체의 줄 간격도 도구막대의 선택 상자에서 조절합니다.</p>
         <blockquote>사진은 글 쓰는 자리에 붙여넣거나(Ctrl+V) 끌어다 놓으면, 알맞은 크기로 줄여서 함께 담깁니다.</blockquote>
         <h2>찾기</h2>
         <p>첫 화면의 검색창은 제목·본문·태그를 한꺼번에 뒤집니다. <b>초성</b>만 적어도 표제어를 찾아 줍니다 — 이를테면 <code>ㅇㅂ</code>이라고 치면 ‘여백’이 나옵니다.</p>

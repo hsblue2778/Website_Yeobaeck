@@ -13,8 +13,10 @@ const Editor = (() => {
     A: ['href'], IMG: ['src', 'alt'],
     FIGURE: [], FIGCAPTION: [],
     TABLE: [], THEAD: [], TBODY: [], TFOOT: [], TR: [], TH: [], TD: [],
-    DIV: [],
+    DIV: [], SPAN: ['class'],
   };
+  // 글자 크기용으로만 class를 허용한다
+  const SIZE_CLASSES = ['t-sm', 't-lg', 't-xl'];
   // 내용까지 통째로 버리는 태그
   const DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'LINK', 'META', 'TITLE', 'HEAD', 'FORM', 'INPUT', 'BUTTON', 'SELECT', 'TEXTAREA', 'VIDEO', 'AUDIO', 'SVG', 'CANVAS', 'NOSCRIPT', 'TEMPLATE']);
 
@@ -61,11 +63,19 @@ const Editor = (() => {
           } else if (name === 'src') {
             const v = safeSrc(attr.value);
             if (v) child.setAttribute('src', v); else { child.remove(); break; }
+          } else if (name === 'class') {
+            const kept = attr.value.split(/\s+/).filter(c => SIZE_CLASSES.includes(c));
+            if (kept.length) child.setAttribute('class', kept.join(' '));
+            else child.removeAttribute(attr.name);
           }
         }
 
-        // src 없는 이미지는 버린다
+        // src 없는 이미지는 버리고, 크기 구실이 없는 span은 벗긴다
         if (tag === 'IMG' && !child.getAttribute('src')) child.remove();
+        if (tag === 'SPAN' && !child.getAttribute('class')) {
+          while (child.firstChild) node.insertBefore(child.firstChild, child);
+          child.remove();
+        }
       }
     })(rootEl);
 
@@ -174,6 +184,8 @@ const Editor = (() => {
   let mountGen = 0;       // 세대 토큰 — 화면이 바뀐 뒤 도착한 비동기 작업을 무시하기 위함
   let saving = false;
   let pendingImages = 0;  // 압축 중인 사진 수
+  let lineHeight = 'normal'; // 이 글의 줄 간격 (tight | normal | loose)
+  const LINE_HEIGHTS = ['tight', 'normal', 'loose'];
 
   const $ = (sel) => root.querySelector(sel);
 
@@ -199,6 +211,15 @@ const Editor = (() => {
     { cmd: 'strike', label: '<span class="t-strike">가</span>', title: '취소선' },
     { cmd: 'mark', label: '<span class="t-mark">가</span>', title: '형광펜' },
     { sep: true },
+    {
+      sel: 'size', title: '글자 크기 (고른 부분에 적용)',
+      options: [['__ph', '글자 크기'], ['t-sm', '작게'], ['__normal', '보통'], ['t-lg', '크게'], ['t-xl', '아주 크게']],
+    },
+    {
+      sel: 'lh', title: '줄 간격 (이 글 전체에 적용)',
+      options: [['tight', '줄간격 좁게'], ['normal', '줄간격 보통'], ['loose', '줄간격 넓게']],
+    },
+    { sep: true },
     { cmd: 'quote', label: '❝', title: '인용' },
     { cmd: 'ul', label: SVG_UL, title: '목록' },
     { cmd: 'ol', label: SVG_OL, title: '번호 목록' },
@@ -223,11 +244,16 @@ const Editor = (() => {
     pendingOldDraft = null;
     savedRange = null;
 
-    const toolsHtml = TOOLS.map(t =>
-      t.sep
-        ? '<span class="sep"></span>'
-        : `<button type="button" class="tool" data-cmd="${t.cmd}" title="${esc(t.title)}" aria-label="${esc(t.title)}">${t.label}</button>`
-    ).join('');
+    const toolsHtml = TOOLS.map(t => {
+      if (t.sep) return '<span class="sep"></span>';
+      if (t.sel) {
+        const opts = t.options.map(([v, label]) =>
+          `<option value="${esc(v)}"${v === '__ph' ? ' disabled hidden selected' : ''}>${esc(label)}</option>`
+        ).join('');
+        return `<span class="tool-selwrap"><select class="tool-select" data-sel="${t.sel}" title="${esc(t.title)}" aria-label="${esc(t.title)}">${opts}</select></span>`;
+      }
+      return `<button type="button" class="tool" data-cmd="${t.cmd}" title="${esc(t.title)}" aria-label="${esc(t.title)}">${t.label}</button>`;
+    }).join('');
 
     container.innerHTML = `
       <section class="view editor-view">
@@ -265,6 +291,7 @@ const Editor = (() => {
     saveBtnEl = $('.save-btn');
 
     if (note) editorEl.innerHTML = sanitize(note.html);
+    setLineHeight(note && note.lineHeight ? note.lineHeight : 'normal');
 
     try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) { /* 무시 */ }
 
@@ -378,6 +405,83 @@ const Editor = (() => {
         const mark = document.createElement('mark');
         mark.appendChild(range.extractContents());
         range.insertNode(mark);
+        sel.removeAllRanges();
+      } catch (e2) { /* 포기 */ }
+    }
+    handleChange();
+  }
+
+  /** 이 글 전체의 줄 간격을 바꾼다 */
+  function setLineHeight(v) {
+    if (!LINE_HEIGHTS.includes(v)) v = 'normal';
+    lineHeight = v;
+    if (editorEl) {
+      editorEl.classList.remove('lh-tight', 'lh-loose');
+      if (v !== 'normal') editorEl.classList.add('lh-' + v);
+    }
+    const sel = root && root.querySelector('select[data-sel="lh"]');
+    if (sel) sel.value = v;
+  }
+
+  function unwrapEl(el) {
+    const parent = el.parentNode;
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
+  }
+
+  /** 감싼 조각 안에 크기 스팬이 겹겹이 쌓이지 않게 안쪽 것들을 벗긴다 */
+  function stripNestedSizes(container) {
+    container.querySelectorAll('span').forEach(s => {
+      if (SIZE_CLASSES.some(c => s.classList.contains(c))) unwrapEl(s);
+    });
+  }
+
+  /** 고른 부분의 글자 크기를 바꾼다(cls가 비면 보통으로 되돌린다) */
+  function applySize(cls) {
+    editorEl.focus();
+    restoreSelection();
+    const sel = window.getSelection();
+    if (!sel.rangeCount || sel.isCollapsed ||
+        !editorEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      UI.toast('크기를 바꿀 부분을 먼저 골라 주세요.');
+      return;
+    }
+    const range = sel.getRangeAt(0);
+
+    // 이미 크기 스팬 안에서 골랐다면 그 스팬을 고치거나 벗긴다
+    let node = range.commonAncestorContainer;
+    while (node && node !== editorEl) {
+      if (node.nodeType === 1 && node.tagName === 'SPAN' &&
+          SIZE_CLASSES.some(c => node.classList.contains(c))) break;
+      node = node.parentNode;
+    }
+    if (node && node !== editorEl) {
+      if (cls) node.className = cls;
+      else unwrapEl(node);
+      sel.removeAllRanges();
+      handleChange();
+      return;
+    }
+
+    if (!cls) return; // 되돌릴 크기 스팬이 없다
+
+    const wrap = () => {
+      const s = document.createElement('span');
+      s.className = cls;
+      return s;
+    };
+    try {
+      const s = wrap();
+      range.surroundContents(s);
+      stripNestedSizes(s);
+      sel.removeAllRanges();
+    } catch (e) {
+      // 선택이 여러 요소에 걸치면 내용을 꺼내 감싼다
+      try {
+        const s = wrap();
+        s.appendChild(range.extractContents());
+        stripNestedSizes(s);
+        range.insertNode(s);
         sel.removeAllRanges();
       } catch (e2) { /* 포기 */ }
     }
@@ -520,6 +624,7 @@ const Editor = (() => {
         title: titleEl.value,
         html: editorEl.innerHTML,
         tags,
+        lineHeight,
         at: Date.now(),
       }));
       draftStatusEl.textContent = '임시저장 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
@@ -572,6 +677,7 @@ const Editor = (() => {
       titleEl.value = draft.title || '';
       editorEl.innerHTML = sanitize(draft.html || '');
       tags = Array.isArray(draft.tags) ? draft.tags.filter(t => typeof t === 'string') : [];
+      setLineHeight(draft.lineHeight || 'normal');
       renderChips();
       updateCount();
       pendingOldDraft = null;
@@ -626,6 +732,7 @@ const Editor = (() => {
         html,
         text,
         tags: [...tags],
+        lineHeight,
         createdAt: note ? note.createdAt : now,
         updatedAt: now,
       };
@@ -654,8 +761,25 @@ const Editor = (() => {
       btn.tabIndex = i === 0 ? 0 : -1; // 도구막대 전체가 Tab 정거장 하나가 되도록
     });
 
-    // 도구막대 안에서는 좌우 화살표로 옮겨 다닌다
+    // 글자 크기 — 선택 상자가 초점을 가져가기 전에 고른 부분을 보관해 둔다
+    const sizeSel = root.querySelector('select[data-sel="size"]');
+    sizeSel.addEventListener('mousedown', saveSelection);
+    sizeSel.addEventListener('change', () => {
+      const v = sizeSel.value;
+      sizeSel.value = '__ph'; // 항상 '글자 크기' 표시로 되돌린다(명령 메뉴이므로)
+      applySize(v === '__normal' ? '' : v);
+    });
+
+    // 줄 간격 — 이 글 전체에 적용된다
+    const lhSel = root.querySelector('select[data-sel="lh"]');
+    lhSel.addEventListener('change', () => {
+      setLineHeight(lhSel.value);
+      scheduleDraft();
+    });
+
+    // 도구막대 안에서는 좌우 화살표로 옮겨 다닌다(선택 상자 안은 제외)
     $('.toolbar').addEventListener('keydown', e => {
+      if (e.target && e.target.tagName === 'SELECT') return;
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
       const cur = toolButtons.indexOf(document.activeElement);

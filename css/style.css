@@ -499,6 +499,15 @@ a.chip:hover, button.chip:hover { opacity: 0.7; }
 /* ---------- 본문 서체(prose) — 열람과 편집 공용 ---------- */
 .prose { line-height: 1.95; }
 
+/* 줄 간격 — 글마다 고를 수 있다 */
+.prose.lh-tight { line-height: 1.6; }
+.prose.lh-loose { line-height: 2.35; }
+
+/* 글자 크기 — 고른 부분에만 적용 */
+.prose .t-sm { font-size: 0.85em; }
+.prose .t-lg { font-size: 1.25em; }
+.prose .t-xl { font-size: 1.5em; }
+
 .prose > *:first-child { margin-top: 0; }
 
 .prose p { margin: 0 0 1.1em; }
@@ -802,6 +811,40 @@ a.chip:hover, button.chip:hover { opacity: 0.7; }
 .tool:hover { background: var(--line-soft); color: var(--ink); }
 
 .tool svg { width: 1.05rem; height: 1.05rem; }
+
+/* 도구막대의 선택 상자(글자 크기 · 줄 간격) */
+.tool-selwrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.tool-selwrap::after {
+  content: '▾';
+  position: absolute;
+  right: 0.35rem;
+  font-size: 0.55rem;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.tool-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  height: 2rem;
+  padding: 0 1.05rem 0 0.45rem;
+  border-radius: 6px;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tool-select:hover { background: var(--line-soft); color: var(--ink); }
 
 .tool .t-bold { font-weight: 800; }
 .tool .t-italic { font-style: italic; }
