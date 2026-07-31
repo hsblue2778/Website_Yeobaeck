@@ -846,6 +846,15 @@ a.chip:hover, button.chip:hover { opacity: 0.7; }
 
 .tool-select:hover { background: var(--line-soft); color: var(--ink); }
 
+/* 선택 상자가 펼치는 목록 — 브라우저 기본색을 쓰지 않고 밤낮 테마를 따라간다 */
+.tool-select option {
+  background-color: var(--paper-elev);
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.tool-select option:disabled { color: var(--ink-faint); }
+
 .tool .t-bold { font-weight: 800; }
 .tool .t-italic { font-style: italic; }
 .tool .t-under { text-decoration: underline; text-underline-offset: 3px; }
@@ -1023,6 +1032,7 @@ a.chip:hover, button.chip:hover { opacity: 0.7; }
 }
 
 .modal input:focus { outline: none; border-bottom-color: var(--seal); }
+.modal input::placeholder { color: var(--ink-faint); }
 
 /* 서랍(설정) */
 .drawer-stats {
